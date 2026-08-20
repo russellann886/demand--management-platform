@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Plus, Inbox, Loader2, ArrowLeft } from "lucide-react";
-import { useAuth, ROLE_SUBJECT } from "@lark-apaas/client-toolkit/auth";
-import { logger } from "@lark-apaas/client-toolkit/logger";
+import { logger } from "@/lib/logger";
 
+import { useAuth } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { getDemands } from "@/api/demand";
@@ -19,8 +19,8 @@ const PAGE_SIZE = 12;
 const HomePage = () => {
   const { categoryId = "" } = useParams();
   const navigate = useNavigate();
-  const { ability, isLoading: authLoading } = useAuth();
-  const isAdmin = ability.can("demand_admin", ROLE_SUBJECT);
+  const { hasRole, loading: authLoading } = useAuth();
+  const isAdmin = hasRole("demand_admin");
 
   const [category, setCategory] = useState<DemandCategory | null>(null);
   const [items, setItems] = useState<DemandListItem[]>([]);

@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { CheckCircle2, CalendarIcon } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import dayjs from "dayjs";
-import { logger } from "@lark-apaas/client-toolkit/logger";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
 import {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { demand as demandApi } from "@/api";
-import { logger } from "@lark-apaas/client-toolkit/logger";
+import { logger } from "@/lib/logger";
 import type { MyDemandItem } from "@shared/api.interface";
 import { MyDemandCard } from "./MyDemandCard";
 

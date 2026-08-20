@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { logger } from '@lark-apaas/client-toolkit/logger';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { FileText } from 'lucide-react';
 

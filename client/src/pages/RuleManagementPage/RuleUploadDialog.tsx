@@ -78,7 +78,7 @@ const RuleUploadDialog: React.FC<RuleUploadDialogProps> = ({
     if (!file) return;
     setUploading(true);
     try {
-      const result = await uploadFile(file);
+      const result = await uploadFile(file, 'rule');
       setFileData({ bucketId: result.bucketId, filePath: result.filePath });
       setFileName(file.name);
       toast.success('文件上传成功');
@@ -153,7 +153,11 @@ const RuleUploadDialog: React.FC<RuleUploadDialogProps> = ({
                 <FormItem>
                   <FormLabel>规则描述</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="请输入规则描述" rows={3} {...field} />
+                    <Textarea
+                      placeholder="请输入规则描述"
+                      rows={3}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -174,10 +178,13 @@ const RuleUploadDialog: React.FC<RuleUploadDialogProps> = ({
             />
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">规则文件</label>
+              <label className="text-sm font-medium text-foreground">
+                规则文件
+              </label>
               <input
                 ref={fileInputRef}
                 type="file"
+                accept=".pdf,.docx,.xlsx,.pptx,.csv,.txt,.md"
                 className="hidden"
                 onChange={handleFileSelect}
               />

@@ -286,11 +286,19 @@ export interface ReleaseSourceResponse {
   dissolved: boolean;
 }
 
-// AI 整合建议（前端解析 AI 输出后使用）
+// 服务端校验后的 AI 整合建议
 export interface MergeSuggestion {
   title: string;
   reason: string;
   demandIds: string[];
+}
+
+export interface MergeSuggestionsRequest {
+  categoryId: string;
+}
+
+export interface MergeSuggestionsResponse {
+  suggestions: MergeSuggestion[];
 }
 
 // ==================== 规则广场 Rule ====================

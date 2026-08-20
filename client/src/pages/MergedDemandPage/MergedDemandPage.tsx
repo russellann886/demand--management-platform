@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { Sparkles, CheckSquare, X, ArrowLeft, Download } from 'lucide-react';
-import { logger } from '@lark-apaas/client-toolkit/logger';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useUserSections } from '@/hooks/useUserSections';
 
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { mergedDemand as mergedDemandApi, demand, demandCategory as categoryApi } from '@/api';
+import {
+  mergedDemand as mergedDemandApi,
+  demandCategory as categoryApi,
+} from '@/api';
 import type {
   DemandCategory,
   MergedDemand,
@@ -38,31 +41,38 @@ const MergedDemandPage: React.FC = () => {
   const [manualOpen, setManualOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [addTarget, setAddTarget] = useState<{ id: string; title: string } | null>(
-    null,
-  );
+  const [addTarget, setAddTarget] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [downloading, setDownloading] = useState(false);
 
-  const loadData = useCallback(async (silent = false) => {
-    if (!categoryId) return;
-    if (!silent) setLoading(true);
-    try {
-      const [listRes, sourceRes, catRes] = await Promise.all([
-        mergedDemandApi.getMergedDemands(categoryId),
-        mergedDemandApi.getSourceDemands(categoryId),
-        categoryApi.getAllCategories(),
-      ]);
-      setMerged(listRes.items);
-      setSources(sourceRes.items);
-      setRawDemands(sourceRes.items);
-      setCategory(catRes.items.find((c) => c.id === categoryId) ?? null);
-    } catch (err) {
-      logger.error('加载整合需求失败', err instanceof Error ? err.message : String(err));
-      toast.error(err instanceof Error ? err.message : '加载整合需求失败');
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [categoryId]);
+  const loadData = useCallback(
+    async (silent = false) => {
+      if (!categoryId) return;
+      if (!silent) setLoading(true);
+      try {
+        const [listRes, sourceRes, catRes] = await Promise.all([
+          mergedDemandApi.getMergedDemands(categoryId),
+          mergedDemandApi.getSourceDemands(categoryId),
+          categoryApi.getAllCategories(),
+        ]);
+        setMerged(listRes.items);
+        setSources(sourceRes.items);
+        setRawDemands(sourceRes.items);
+        setCategory(catRes.items.find((c) => c.id === categoryId) ?? null);
+      } catch (err) {
+        logger.error(
+          '加载整合需求失败',
+          err instanceof Error ? err.message : String(err),
+        );
+        toast.error(err instanceof Error ? err.message : '加载整合需求失败');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [categoryId],
+  );
 
   useEffect(() => {
     if (canAccess) {
@@ -142,7 +152,10 @@ const MergedDemandPage: React.FC = () => {
       toast.success('已删除整合需求');
       await loadData(true);
     } catch (err) {
-      logger.error('删除失败', err instanceof Error ? err.message : String(err));
+      logger.error(
+        '删除失败',
+        err instanceof Error ? err.message : String(err),
+      );
       toast.error(err instanceof Error ? err.message : '删除失败');
     }
   };
@@ -160,7 +173,10 @@ const MergedDemandPage: React.FC = () => {
       const zipName = `需求图片_${category?.name ?? '导出'}_${dateStr}.zip`;
       await downloadFilesAsZip(items, zipName);
     } catch (err) {
-      logger.error('批量下载失败', err instanceof Error ? err.message : String(err));
+      logger.error(
+        '批量下载失败',
+        err instanceof Error ? err.message : String(err),
+      );
       toast.error('批量下载失败');
     } finally {
       setDownloading(false);
@@ -170,10 +186,15 @@ const MergedDemandPage: React.FC = () => {
   const handleReleaseSource = async (mergedId: string, demandId: string) => {
     try {
       const res = await mergedDemandApi.releaseSource(mergedId, demandId);
-      toast.success(res.dissolved ? '已释放，整合需求已自动解散' : '已释放该原始需求');
+      toast.success(
+        res.dissolved ? '已释放，整合需求已自动解散' : '已释放该原始需求',
+      );
       await loadData(true);
     } catch (err) {
-      logger.error('释放失败', err instanceof Error ? err.message : String(err));
+      logger.error(
+        '释放失败',
+        err instanceof Error ? err.message : String(err),
+      );
       toast.error(err instanceof Error ? err.message : '释放失败');
     }
   };
@@ -196,13 +217,17 @@ const MergedDemandPage: React.FC = () => {
               需求整合 · {category?.name ?? ''}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              统一管理原始需求与已整合需求，可手动勾选整合或由 AI 智能识别可合并项
+              统一管理原始需求与已整合需求，可手动勾选整合或由 AI
+              智能识别可合并项
             </p>
           </div>
           <div className="flex items-center gap-2">
             {selectionMode ? (
               <>
-                <Button onClick={handleManualMerge} disabled={selectedDemandIds.length < 2}>
+                <Button
+                  onClick={handleManualMerge}
+                  disabled={selectedDemandIds.length < 2}
+                >
                   <CheckSquare className="size-4" />
                   整合所选（{selectedDemandIds.length}）
                 </Button>
@@ -221,7 +246,11 @@ const MergedDemandPage: React.FC = () => {
                   <Sparkles className="size-4" />
                   AI 智能整合
                 </Button>
-                <Button variant="outline" onClick={handleBatchDownload} disabled={downloading}>
+                <Button
+                  variant="outline"
+                  onClick={handleBatchDownload}
+                  disabled={downloading}
+                >
                   <Download className="size-4" />
                   {downloading ? '打包中...' : '批量下载图片'}
                 </Button>
@@ -233,7 +262,8 @@ const MergedDemandPage: React.FC = () => {
 
       {selectionMode && (
         <div className="rounded-lg border border-border bg-accent/40 px-4 py-2.5 text-sm text-muted-foreground">
-          请勾选 2 条及以上的原始需求，然后点击「整合所选」填写整合信息（已整合需求行不可勾选）
+          请勾选 2
+          条及以上的原始需求，然后点击「整合所选」填写整合信息（已整合需求行不可勾选）
         </div>
       )}
 

@@ -336,7 +336,7 @@ export const Attachment = Node.create<AttachmentExtensionOptions>({
   addOptions() {
     return {
       upload: async (file: File) => {
-        const data = await uploadFile(file);
+        const data = await uploadFile(file, 'attachment');
         return data.url;
       },
     };

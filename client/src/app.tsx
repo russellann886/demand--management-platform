@@ -1,6 +1,6 @@
-import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { RequireRole } from './auth/guards';
 import Layout from './components/Layout';
 import PlazaOverviewPage from './pages/PlazaOverviewPage/PlazaOverviewPage';
 import HomePage from './pages/HomePage/HomePage';
@@ -10,6 +10,7 @@ import MergedCategoryListPage from './pages/MergedCategoryListPage/MergedCategor
 import MergedDemandPage from './pages/MergedDemandPage/MergedDemandPage';
 import RuleManagementPage from './pages/RuleManagementPage/RuleManagementPage';
 import NotFound from './pages/NotFound/NotFound';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 
 const RoutesComponent = () => {
   return (
@@ -26,8 +27,11 @@ const RoutesComponent = () => {
         />
         <Route path="rule-plaza" element={<Navigate to="/" replace />} />
         <Route path="rule-management" element={<RuleManagementPage />} />
+        <Route element={<RequireRole roles={['super_admin']} />}>
+          <Route path="admin/users" element={<AdminUsersPage />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
       </Route>
-      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

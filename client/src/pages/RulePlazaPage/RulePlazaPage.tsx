@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Inbox, ExternalLink } from 'lucide-react';
-import { logger } from '@lark-apaas/client-toolkit/logger';
+import { ArrowLeft, Inbox, Plus } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import BoardCard from '../CategoryListPage/BoardCard';
 import RuleCard from './RuleCard';
+import SubmitRuleDialog from './SubmitRuleDialog';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { rule as ruleApi } from '@/api';
-import {
-  RULE_SECTIONS,
-  type RuleListItem,
-} from '@shared/api.interface';
-import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLink';
+import { RULE_SECTIONS, type RuleListItem } from '@shared/api.interface';
 
 const RulePlazaPage: React.FC = () => {
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [items, setItems] = useState<RuleListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [ruleCounts, setRuleCounts] = useState<Record<string, number>>({});
+  const [submitOpen, setSubmitOpen] = useState(false);
 
   const sectionDef = RULE_SECTIONS.find((s) => s.key === selectedSection);
 
@@ -106,19 +104,6 @@ const RulePlazaPage: React.FC = () => {
             />
           ))}
         </div>
-        <div className="flex justify-center pt-2">
-          <UniversalLink
-            to="https://bytedance.feishuapp.com/app/app_179r1c43mzr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full sm:w-auto"
-          >
-            <Button size="lg" className="w-full gap-2 text-base">
-              前往申请加白
-              <ExternalLink className="size-4" />
-            </Button>
-          </UniversalLink>
-        </div>
       </div>
     );
   }
@@ -134,13 +119,19 @@ const RulePlazaPage: React.FC = () => {
         返回
       </button>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          {sectionDef?.name}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {sectionDef?.description}
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {sectionDef?.name}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {sectionDef?.description}
+          </p>
+        </div>
+        <Button onClick={() => setSubmitOpen(true)}>
+          <Plus className="size-4" />
+          申请加白/加黑
+        </Button>
       </div>
 
       {loading ? (
@@ -159,6 +150,11 @@ const RulePlazaPage: React.FC = () => {
           ))}
         </div>
       )}
+      <SubmitRuleDialog
+        open={submitOpen}
+        onOpenChange={setSubmitOpen}
+        section={selectedSection}
+      />
     </div>
   );
 };

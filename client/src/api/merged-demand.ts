@@ -1,99 +1,93 @@
-import { axiosForBackend } from '@lark-apaas/client-toolkit/utils/getAxiosForBackend';
 import type {
   AddMergedSourcesRequest,
   CreateMergedDemandRequest,
   MergedDemandListResponse,
   MergedDemandMutationResponse,
+  MergeSuggestionsResponse,
   ReleaseSourceResponse,
   SourceDemandListResponse,
   UpdateMergedDemandRequest,
 } from '@shared/api.interface';
-
-function ensureAuthorized(status: number): void {
-  if (status === 403) {
-    throw new Error('无操作权限，请联系管理员分配「需求管理员」角色');
-  }
-}
+import { apiRequest } from './client';
 
 export async function getSourceDemands(
   categoryId: string,
 ): Promise<SourceDemandListResponse> {
-  const res = await axiosForBackend({
-    url: `/api/merged-demands/source-demands?categoryId=${categoryId}`,
-    method: 'GET',
-  });
-  ensureAuthorized(res.status);
-  return res.data;
+  const query = new URLSearchParams({ categoryId });
+  return apiRequest<SourceDemandListResponse>(
+    `/api/merged-demands/source-demands?${query}`,
+    {
+      method: 'GET',
+    },
+  );
 }
 
 export async function getMergedDemands(
   categoryId: string,
 ): Promise<MergedDemandListResponse> {
-  const res = await axiosForBackend({
-    url: `/api/merged-demands?categoryId=${categoryId}`,
+  const query = new URLSearchParams({ categoryId });
+  return apiRequest<MergedDemandListResponse>(`/api/merged-demands?${query}`, {
     method: 'GET',
   });
-  ensureAuthorized(res.status);
-  return res.data;
+}
+
+export async function getMergeSuggestions(
+  categoryId: string,
+): Promise<MergeSuggestionsResponse> {
+  return apiRequest<MergeSuggestionsResponse>('/api/ai/merge-suggestions', {
+    method: 'POST',
+    body: { categoryId },
+  });
 }
 
 export async function createMergedDemand(
   body: CreateMergedDemandRequest,
 ): Promise<MergedDemandMutationResponse> {
-  const res = await axiosForBackend({
-    url: '/api/merged-demands',
+  return apiRequest<MergedDemandMutationResponse>('/api/merged-demands', {
     method: 'POST',
-    data: body,
+    body,
   });
-  ensureAuthorized(res.status);
-  return res.data;
 }
 
 export async function updateMergedDemand(
   id: string,
   body: UpdateMergedDemandRequest,
 ): Promise<MergedDemandMutationResponse> {
-  const res = await axiosForBackend({
-    url: `/api/merged-demands/${id}`,
-    method: 'PUT',
-    data: body,
-  });
-  ensureAuthorized(res.status);
-  return res.data;
+  return apiRequest<MergedDemandMutationResponse>(
+    `/api/merged-demands/${encodeURIComponent(id)}`,
+    { method: 'PUT', body },
+  );
 }
 
 export async function deleteMergedDemand(
   id: string,
 ): Promise<MergedDemandMutationResponse> {
-  const res = await axiosForBackend({
-    url: `/api/merged-demands/${id}`,
-    method: 'DELETE',
-  });
-  ensureAuthorized(res.status);
-  return res.data;
+  return apiRequest<MergedDemandMutationResponse>(
+    `/api/merged-demands/${encodeURIComponent(id)}`,
+    {
+      method: 'DELETE',
+    },
+  );
 }
 
 export async function releaseSource(
   mergedDemandId: string,
   demandId: string,
 ): Promise<ReleaseSourceResponse> {
-  const res = await axiosForBackend({
-    url: `/api/merged-demands/${mergedDemandId}/sources/${demandId}`,
-    method: 'DELETE',
-  });
-  ensureAuthorized(res.status);
-  return res.data;
+  return apiRequest<ReleaseSourceResponse>(
+    `/api/merged-demands/${encodeURIComponent(mergedDemandId)}/sources/${encodeURIComponent(demandId)}`,
+    {
+      method: 'DELETE',
+    },
+  );
 }
 
 export async function addSourcesToMerged(
   mergedDemandId: string,
   body: AddMergedSourcesRequest,
 ): Promise<MergedDemandMutationResponse> {
-  const res = await axiosForBackend({
-    url: `/api/merged-demands/${mergedDemandId}/sources`,
-    method: 'POST',
-    data: body,
-  });
-  ensureAuthorized(res.status);
-  return res.data;
+  return apiRequest<MergedDemandMutationResponse>(
+    `/api/merged-demands/${encodeURIComponent(mergedDemandId)}/sources`,
+    { method: 'POST', body },
+  );
 }

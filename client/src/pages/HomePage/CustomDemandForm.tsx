@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import { CheckCircle2, CalendarIcon, Upload, X, Link as LinkIcon } from 'lucide-react';
+import { CheckCircle2, CalendarIcon, Upload, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import dayjs from 'dayjs';
-import { logger } from '@lark-apaas/client-toolkit/logger';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 
 import {
@@ -31,7 +31,6 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { FileImage } from '@/components/FileImage';
-import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLink';
 import { createDemand } from '@/api/demand';
 import { uploadFile } from '@/components/business-ui/api/files/service';
 import type {
@@ -60,18 +59,18 @@ export const CustomDemandForm = ({
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const setValue = useCallback(
-    (fieldId: string, value: CustomFieldValue) => {
-      setValues((prev) => ({ ...prev, [fieldId]: value }));
-    },
-    [],
-  );
+  const setValue = useCallback((fieldId: string, value: CustomFieldValue) => {
+    setValues((prev) => ({ ...prev, [fieldId]: value }));
+  }, []);
 
   const handleImageUpload = async (fieldId: string, file: File) => {
     setUploadingField(fieldId);
     try {
-      const result = await uploadFile(file);
-      setValue(fieldId, { bucketId: result.bucketId, filePath: result.filePath });
+      const result = await uploadFile(file, 'image');
+      setValue(fieldId, {
+        bucketId: result.bucketId,
+        filePath: result.filePath,
+      });
     } catch (error) {
       logger.error('图片上传失败', error);
       toast.error('图片上传失败，请重试');
@@ -101,10 +100,13 @@ export const CustomDemandForm = ({
         (f) => f.type === 'text' || f.type === 'textarea',
       );
       const titleSource = firstTextField
-        ? (values[firstTextField.id] as string) ?? ''
+        ? ((values[firstTextField.id] as string) ?? '')
         : '';
       const title =
-        titleSource.replace(/<[^>]*>/g, '').trim().slice(0, 50) || '未命名需求';
+        titleSource
+          .replace(/<[^>]*>/g, '')
+          .trim()
+          .slice(0, 50) || '未命名需求';
 
       const customFields: CustomFields = {};
       for (const field of formFields) {
@@ -221,7 +223,9 @@ export const CustomDemandForm = ({
             {value && typeof value === 'object' && (
               <div className="relative inline-block">
                 <FileImage
-                  filePath={(value as { bucketId: string; filePath: string }).filePath}
+                  filePath={
+                    (value as { bucketId: string; filePath: string }).filePath
+                  }
                   alt={field.label}
                   className="size-24 rounded-lg border border-border object-cover"
                 />
@@ -250,7 +254,8 @@ export const CustomDemandForm = ({
               <div
                 className={cn(
                   'flex h-24 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border/80 bg-muted/20 text-muted-foreground transition-colors hover:border-primary hover:text-primary hover:bg-accent/30',
-                  uploadingField === field.id && 'pointer-events-none opacity-60',
+                  uploadingField === field.id &&
+                    'pointer-events-none opacity-60',
                 )}
               >
                 <Upload className="size-4" />
@@ -291,22 +296,24 @@ export const CustomDemandForm = ({
       <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 px-6 pt-6 pb-3">
           <DialogTitle className="tracking-tight">提交新需求</DialogTitle>
-          <DialogDescription className="text-[13px] leading-relaxed">请填写以下需求信息，标有 * 为必填项</DialogDescription>
+          <DialogDescription className="text-[13px] leading-relaxed">
+            请填写以下需求信息，标有 * 为必填项
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4 rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-          {formFields.map((field) => (
-            <div key={field.id} className="space-y-1.5">
-              <Label>
-                {field.label}
-                {field.required && (
-                  <span className="ml-0.5 text-destructive/70">*</span>
-                )}
-              </Label>
-              {renderField(field)}
-            </div>
-          ))}
+            {formFields.map((field) => (
+              <div key={field.id} className="space-y-1.5">
+                <Label>
+                  {field.label}
+                  {field.required && (
+                    <span className="ml-0.5 text-destructive/70">*</span>
+                  )}
+                </Label>
+                {renderField(field)}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -319,11 +326,7 @@ export const CustomDemandForm = ({
           >
             取消
           </Button>
-          <Button
-            type="button"
-            disabled={submitting}
-            onClick={handleSubmit}
-          >
+          <Button type="button" disabled={submitting} onClick={handleSubmit}>
             {submitting ? '提交中...' : '提交需求'}
           </Button>
         </div>

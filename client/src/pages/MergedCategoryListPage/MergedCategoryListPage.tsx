@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Layers, Inbox, ArrowLeft } from 'lucide-react';
-import { logger } from '@lark-apaas/client-toolkit/logger';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';

@@ -128,8 +128,8 @@
 
 - `server/modules/demand-category/`：DemandCategoryModule，接口前缀 `/api/demand-categories`；`GET /` 公开仅返回启用栏目（含 demandCount），`GET /all`、`POST /`、`PUT /:id` 加 `@CanRole(['demand_admin'])`，写操作加 `@NeedLogin()`；`GET /board-admins` 通过 AuthorizationSDK 查询各板块管理员角色成员，返回 `Record<string, string[]>`（板块名→用户ID列表）
 - `server/modules/demand/`：DemandModule，接口前缀 `/api/demands`，list 与 create 按 `categoryId` 隔离；DemandService 已 export 供整合模块复用读取
-- `server/modules/merged-demand/`：MergedDemandModule，接口前缀 `/api/merged-demands`，全部加 `@CanRole(['demand_admin'])`，list/source-demands/create 均按 `categoryId` 隔离；`DELETE :id/sources/:demandId` 释放单条关联，剩余关联不足 2 条时自动解散整条整合需求；MergedDemandService 已 export 供通知模块复用
-- `server/modules/demand-notification/`：DemandNotificationModule，无对外接口。`DemandNotificationAutomationService` 绑定 record_change 触发器 `demand_created_notify`（监听 `demand` 表 INSERT），新需求提交后编排「读同栏目原始+整合需求 → AI 分析可合并性 → 查 demand_admin 成员 → 发飞书卡片」，全程异常不阻塞
+- `server/modules/merged-demand/`：MergedDemandModule，接口前缀 `/api/merged-demands`，全部加 `@CanRole(['demand_admin'])`，list/source-demands/create 均按 `categoryId` 隔离；`DELETE :id/sources/:demandId` 释放单条关联，剩余关联不足 2 条时自动解散整条整合需求
+- `worker/routes/ai.ts`：`POST /api/ai/merge-suggestions` 仅管理员可用，并按栏目板块复用权限校验；服务端读取未整合需求并调用 OpenRouter
 - `server/modules/rule/`：RuleModule，接口前缀 `/api/rules`；`GET /` 公开（支持 section/type/status/creator=me 过滤分页），`GET /:id` 公开，`POST /` 加 `@NeedLogin`（type='规则' 需板块管理员权限并自动设 '已通过'，type='加白'/'加黑' 自动设 '待审批'），`PUT /:id`/`DELETE /:id` 加 `@CanRole(ALL_ADMIN_ROLES)`+`@NeedLogin`（仅 type='规则' + section 权限校验），`PATCH /:id/status` 加 `@CanRole(ALL_ADMIN_ROLES)`+`@NeedLogin`（仅 type='加白'/'加黑' + status='待审批' + section 权限校验）。权限校验用 `canManageRuleSection(sectionKey, roles)`，与 `getUserSections` 对 undefined roles 处理一致（视为超管）
 - 当前用户从 `req.userContext.userId` 获取
 
@@ -145,10 +145,10 @@
 
 ### AI 能力
 
-- PluginInstance `demand_merge_analyzer`（基于 ai-text-generate，stream）：Client 侧 `capabilityClient.load('demand_merge_analyzer').callStream('textGenerate', { prompt })`，AIMergeDialog 将全部未整合原始需求拼成提示词要求 AI 输出 JSON 分组建议，用户多选采纳后经 create 接口落库；Server 侧（DemandNotificationAutomationService）复用同一实例对单条新需求做可合并性分析
-- PluginInstance `demand_submit_feishu_notify_1`（基于 send-feishu-message）：Server 侧发送飞书卡片，入参 `receiverUserList/title/content/linkUrl`；formValue.title 为对象 `{ title, color }`，按钮跳转 `linkUrl`
+- `AIMergeDialog` 调用同源 `/api/ai/merge-suggestions`；Worker 读取同栏目未整合需求，限制数量和提示长度，通过服务端 Secret 调用 OpenRouter，并校验、清洗返回的 JSON 分组
+- `OPENROUTER_MODEL` 可配置模型，未配置时使用安全默认值；`OPENROUTER_API_KEY` 仅允许配置为 Worker Secret
 
 ### 权限
 
-- 平台角色 `demand_admin`（需求管理员）：需求管理功能的查看与编辑权限，也是新需求飞书通知的接收对象（自动化任务通过 AuthorizationSDK 动态查询其成员）。板块管理员角色（admin_goods/admin_coupon/admin_replenish/admin_content/admin_shelf/admin_campaign）仅管理各自板块。开发态用 `miaoda-auth-cli` MOCK 调试，线上经角色面板授权
+- 平台角色 `demand_admin`（需求管理员）可管理全部需求板块。板块管理员角色（admin_goods/admin_coupon/admin_replenish/admin_content/admin_shelf/admin_campaign）仅管理各自板块
 - 规则模块权限：`RULE_SECTIONS` 定义 3 个规则板块（coupon=营销优惠规则/goods=货品规则/replenish=加白规则），每个板块对应一个 adminRole（admin_coupon/admin_goods/admin_replenish）。`canManageRuleSection(sectionKey, roles)` 校验逻辑：demand_admin 可管理全部板块，板块管理员仅管理对应板块。前端 `useUserSections` 返回 board section names，需映射到 rule section keys（coupon/goods → 消费券&货品板块，replenish → 追补板块）

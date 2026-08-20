@@ -1,0 +1,8 @@
+# Copy to .dev.vars for local Worker development. Never commit real secrets.
+APP_ENV=development
+DEV_USER_EMAIL=
+DEV_USER_NAME=
+SUPER_ADMIN_EMAILS=
+OPENAPI_DEMAND_TOKEN=
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4o-mini

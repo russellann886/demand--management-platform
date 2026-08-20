@@ -1,4 +1,4 @@
-import { useAuth, ROLE_SUBJECT } from '@lark-apaas/client-toolkit/auth';
+import { useAuth } from '@/auth/AuthContext';
 import { SECTION_ADMIN_ROLES } from '@shared/api.interface';
 
 interface UseUserSectionsResult {
@@ -8,18 +8,21 @@ interface UseUserSectionsResult {
 }
 
 export function useUserSections(): UseUserSectionsResult {
-  const { ability, isLoading } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (isLoading) {
+  if (loading) {
     return { sections: [], isSuperAdmin: false, isLoading: true };
   }
 
-  if (ability.can('demand_admin', ROLE_SUBJECT)) {
+  if (
+    user?.roles.includes('super_admin') ||
+    user?.roles.includes('demand_admin')
+  ) {
     return { sections: null, isSuperAdmin: true, isLoading: false };
   }
 
   const sections = Object.entries(SECTION_ADMIN_ROLES)
-    .filter(([role]) => ability.can(role, ROLE_SUBJECT))
+    .filter(([role]) => user?.roles.some((userRole) => userRole === role))
     .map(([, section]) => section);
 
   return { sections, isSuperAdmin: false, isLoading: false };

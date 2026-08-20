@@ -1,16 +1,16 @@
 {
-  "extends": "@lark-apaas/fullstack-presets/lib/simple/tsconfig/tsconfig.node.json",
   "compilerOptions": {
-    "baseUrl": "./",
-    "outDir": "./dist",
-    "paths": {
-      "@server/*": ["server/*"],
-      "@shared/*": ["shared/*"],
-    }
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"]
   },
-  "watchOptions": {
-    "excludeDirectories": ["node_modules/**"]
-  },
-  "include": ["server/**/*", "shared/**/*.ts"],
-  "exclude": ["node_modules", "dist", "client", "**/*.spec.ts", "**/*.e2e-spec.ts"],
+  "include": ["vite.config.ts", "tailwind.config.ts"]
 }

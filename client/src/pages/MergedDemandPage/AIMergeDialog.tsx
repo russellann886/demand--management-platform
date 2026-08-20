@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
-import { capabilityClient } from '@lark-apaas/client-toolkit';
-import { logger } from '@lark-apaas/client-toolkit/logger';
 import { toast } from 'sonner';
 
 import {
@@ -21,7 +19,6 @@ import type {
   MergeSuggestion,
   SourceDemandItem,
 } from '@shared/api.interface';
-import type { DemandMergeAnalyzerOutput } from '@shared/plugin-types';
 
 interface AIMergeDialogProps {
   open: boolean;
@@ -29,74 +26,6 @@ interface AIMergeDialogProps {
   categoryId: string;
   sources: SourceDemandItem[];
   onSaved: () => void | Promise<void>;
-}
-
-const MAX_FIELD_LEN = 500;
-
-function truncate(text: string): string {
-  if (!text) return '';
-  return text.length > MAX_FIELD_LEN
-    ? `${text.slice(0, MAX_FIELD_LEN)}...`
-    : text;
-}
-
-function buildPrompt(sources: SourceDemandItem[]): string {
-  const demandData = sources.map((s) => ({
-    id: s.id,
-    title: s.title,
-    background: truncate(s.background),
-    department: s.department,
-  }));
-
-  return [
-    '你是一位资深的产品需求分析专家。下面是一组企业内部需求列表（JSON 数组）：',
-    '',
-    JSON.stringify(demandData, null, 2),
-    '',
-    '请判断其中哪些需求在目标、功能或场景上高度相似、可以整合合并。',
-    '只输出确实可以整合的分组（每组至少包含 2 条原始需求）；如果没有任何可整合的需求，返回空数组 []。',
-    '严格只返回一个 JSON 数组，不要输出任何解释性文字、不要使用 markdown 代码块标记。',
-    '数组中每个元素格式为：',
-    '{"title": "整合后的需求标题", "reason": "整合说明与合并理由", "demandIds": ["关联的原始需求id", ...]}',
-    'demandIds 中只能使用上面列表里出现过的 id。',
-  ].join('\n');
-}
-
-function parseSuggestions(
-  raw: string,
-  validIds: Set<string>,
-): MergeSuggestion[] {
-  let text = raw.trim();
-  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenceMatch) {
-    text = fenceMatch[1].trim();
-  }
-  const start = text.indexOf('[');
-  const end = text.lastIndexOf(']');
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error('AI 返回内容无法解析为整合建议');
-  }
-  const parsed: unknown = JSON.parse(text.slice(start, end + 1));
-  if (!Array.isArray(parsed)) {
-    throw new Error('AI 返回内容格式不正确');
-  }
-
-  const result: MergeSuggestion[] = [];
-  for (const item of parsed) {
-    if (!item || typeof item !== 'object') continue;
-    const obj = item as Record<string, unknown>;
-    const title = typeof obj.title === 'string' ? obj.title : '';
-    const reason = typeof obj.reason === 'string' ? obj.reason : '';
-    const ids = Array.isArray(obj.demandIds)
-      ? obj.demandIds.filter(
-          (id): id is string => typeof id === 'string' && validIds.has(id),
-        )
-      : [];
-    if (title && ids.length >= 2) {
-      result.push({ title, reason, demandIds: ids });
-    }
-  }
-  return result;
 }
 
 const AIMergeDialog: React.FC<AIMergeDialogProps> = ({
@@ -130,28 +59,15 @@ const AIMergeDialog: React.FC<AIMergeDialogProps> = ({
     setAnalyzing(true);
     reset();
     try {
-      const prompt = buildPrompt(sources);
-      const stream = await capabilityClient
-        .load('demand_merge_analyzer')
-        .callStream('textGenerate', { prompt });
-
-      let fullText = '';
-      for await (const chunk of stream as AsyncIterable<DemandMergeAnalyzerOutput>) {
-        fullText += chunk.content || '';
-      }
-
-      const validIds = new Set(sources.map((s) => s.id));
-      const parsed = parseSuggestions(fullText, validIds);
+      const { suggestions: parsed } =
+        await mergedDemandApi.getMergeSuggestions(categoryId);
       setSuggestions(parsed);
       setChecked(parsed.map(() => true));
       if (parsed.length === 0) {
         toast.info('AI 未发现可整合的需求');
       }
     } catch (err) {
-      logger.error(
-        'AI 整合分析失败',
-        err instanceof Error ? err.message : String(err),
-      );
+      console.error('AI 整合分析失败', err);
       toast.error(
         err instanceof Error
           ? `AI 整合分析失败：${err.message}`
@@ -191,7 +107,7 @@ const AIMergeDialog: React.FC<AIMergeDialogProps> = ({
       onOpenChange(false);
       await onSaved();
     } catch (err) {
-      logger.error('保存整合需求失败', err instanceof Error ? err.message : String(err));
+      console.error('保存整合需求失败', err);
       toast.error(err instanceof Error ? err.message : '保存失败');
     } finally {
       setSaving(false);

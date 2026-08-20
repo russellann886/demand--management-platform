@@ -1,45 +1,29 @@
+const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
-const { eslintPresetsOfSimple } = require('@lark-apaas/fullstack-presets');
+const globals = require('globals');
 
 module.exports = tseslint.config(
-  { ignores: ['dist', 'dist-server', 'node_modules', 'client/src/api/gen', '**/*.d.ts', '**/*.js.map'] },
-  // Client configuration
   {
-    files: ['client/**/*.{ts,tsx}', 'shared/**/*.{ts,tsx}'],
-    extends: [
-      ...eslintPresetsOfSimple.client,
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'client/src/api/gen/**',
+      'server/**',
+      'shared/**',
     ],
-    settings: {
-      'import/resolver': {
-        alias: {
-          map: [
-            ['@', './client/src'],
-            ['@client', './client'],
-            ['@shared', './shared'],
-          ],
-          extensions: ['.js', '.jsx', '.ts', '.tsx'],
-        },
-      },
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    files: ['client/src/main.tsx'],
+    languageOptions: {
+      globals: globals.browser,
     },
   },
-  // Server configuration
   {
-    files: ['server/**/*.{ts,tsx}', 'shared/**/*.{ts,tsx}'],
-    extends: [
-      ...eslintPresetsOfSimple.server,
-    ],
+    files: ['worker/**/*.ts'],
     languageOptions: {
-      parserOptions: {
-        project: './tsconfig.node.json',
-      }
+      globals: globals.worker,
     },
-    settings: {
-      'import/resolver': {
-        alias: {
-          map: [['@server', './server'], ['@shared', './shared']],
-          extensions: ['.js', '.jsx', '.ts', '.tsx'],
-        },
-      }
-    }
   },
 );

@@ -1,22 +1,34 @@
-import { useCallback, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Loader2, Image as ImageIcon, CalendarClock, TrendingUp, CalendarDays, Link as LinkIcon } from "lucide-react";
-import dayjs from "dayjs";
-import { useCurrentUserProfile } from "@lark-apaas/client-toolkit/hooks/useCurrentUserProfile";
-import { logger } from "@lark-apaas/client-toolkit/logger";
+import { useCallback, useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Building2,
+  Loader2,
+  Image as ImageIcon,
+  CalendarClock,
+  TrendingUp,
+  CalendarDays,
+  Link as LinkIcon,
+} from 'lucide-react';
+import dayjs from 'dayjs';
+import { useAuth } from '@/auth/AuthContext';
+import { logger } from '@/lib/logger';
 
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SubmitterDisplay } from "@/components/SubmitterDisplay";
-import { TiptapEditorComplete } from "@/components/business-ui/tiptap-editor";
-import { formatExpectedValue } from "@/pages/HomePage/demand-form-config";
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { SubmitterDisplay } from '@/components/SubmitterDisplay';
+import { TiptapEditorComplete } from '@/components/business-ui/tiptap-editor';
+import { formatExpectedValue } from '@/pages/HomePage/demand-form-config';
 
-import { getDemandDetail } from "@/api/demand";
-import type { DemandDetail, FormFieldDefinition, CustomFieldValue } from "@shared/api.interface";
+import { getDemandDetail } from '@/api/demand';
+import type {
+  DemandDetail,
+  FormFieldDefinition,
+  CustomFieldValue,
+} from '@shared/api.interface';
 import { FileImage } from '@/components/FileImage';
 import { useFileUrl } from '@/hooks/useFileUrl';
-import { CommentSection } from "./CommentSection";
-import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLink';
+import { CommentSection } from './CommentSection';
 
 const DemandImageLink = ({ filePath }: { filePath: string }) => {
   const url = useFileUrl(filePath);
@@ -33,15 +45,15 @@ const DemandImageLink = ({ filePath }: { filePath: string }) => {
   return (
     <div className="border-t border-border pt-4">
       <p className="mb-2 text-sm font-medium text-muted-foreground">附件图片</p>
-      <UniversalLink
-        to={url}
+      <a
+        href={url}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 rounded-lg border border-border p-2 hover:bg-accent"
       >
         <ImageIcon className="size-5 text-primary" />
         <span className="text-sm text-foreground">查看图片</span>
-      </UniversalLink>
+      </a>
     </div>
   );
 };
@@ -49,8 +61,8 @@ const DemandImageLink = ({ filePath }: { filePath: string }) => {
 const DemandDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const userInfo = useCurrentUserProfile();
-  const isLoggedIn = Boolean(userInfo?.user_id);
+  const { user } = useAuth();
+  const isLoggedIn = Boolean(user);
 
   const [demand, setDemand] = useState<DemandDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +74,7 @@ const DemandDetailPage = () => {
       const res = await getDemandDetail(id);
       setDemand(res);
     } catch (error) {
-      logger.error("获取需求详情失败", error);
+      logger.error('获取需求详情失败', error);
     } finally {
       setLoading(false);
     }
@@ -117,18 +129,23 @@ const DemandDetailPage = () => {
               />
               <span className="flex items-center gap-1.5">
                 <Building2 className="size-4" />
-                {demand.department || "未填写部门"}
+                {demand.department || '未填写部门'}
               </span>
             </div>
 
             {demand.formFields && demand.customFields ? (
               <div className="space-y-4 border-t border-border pt-4">
                 {demand.formFields.map((field: FormFieldDefinition) => {
-                  const value = demand.customFields![field.id] as CustomFieldValue;
-                  if (value === null || value === undefined || value === '') return null;
+                  const value = demand.customFields![
+                    field.id
+                  ] as CustomFieldValue;
+                  if (value === null || value === undefined || value === '')
+                    return null;
                   return (
                     <div key={field.id} className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground">{field.label}</p>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {field.label}
+                      </p>
                       <div className="text-sm text-foreground">
                         {field.type === 'date' && typeof value === 'string' && (
                           <span className="flex items-center gap-1.5">
@@ -137,94 +154,107 @@ const DemandDetailPage = () => {
                           </span>
                         )}
                         {field.type === 'link' && typeof value === 'string' && (
-                          <UniversalLink
-                            to={value}
+                          <a
+                            href={value}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 text-primary hover:underline"
                           >
                             <LinkIcon className="size-4" />
                             <span className="break-all">{value}</span>
-                          </UniversalLink>
+                          </a>
                         )}
-                        {field.type === 'image' && typeof value === 'object' && value !== null && (
-                          <FileImage
-                            filePath={(value as { bucketId: string; filePath: string }).filePath}
-                            alt={field.label}
-                            className="max-w-xs rounded-lg border border-border"
-                          />
-                        )}
-                        {field.type === 'select' && typeof value === 'string' && (
-                          <Badge variant="secondary" className="font-normal">{value}</Badge>
-                        )}
+                        {field.type === 'image' &&
+                          typeof value === 'object' &&
+                          value !== null && (
+                            <FileImage
+                              filePath={
+                                (
+                                  value as {
+                                    bucketId: string;
+                                    filePath: string;
+                                  }
+                                ).filePath
+                              }
+                              alt={field.label}
+                              className="max-w-xs rounded-lg border border-border"
+                            />
+                          )}
+                        {field.type === 'select' &&
+                          typeof value === 'string' && (
+                            <Badge variant="secondary" className="font-normal">
+                              {value}
+                            </Badge>
+                          )}
                         {field.type === 'text' && typeof value === 'string' && (
                           <span className="whitespace-pre-wrap">{value}</span>
                         )}
-                        {field.type === 'textarea' && typeof value === 'string' && (
-                          <span className="whitespace-pre-wrap">{value}</span>
-                        )}
+                        {field.type === 'textarea' &&
+                          typeof value === 'string' && (
+                            <span className="whitespace-pre-wrap">{value}</span>
+                          )}
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-            <>
-            <div className="flex flex-wrap items-center gap-2">
-              {demand.demandType && (
-                <Badge variant="secondary" className="font-normal">
-                  {demand.demandType}
-                </Badge>
-              )}
-              {demand.priority && (
-                <Badge variant="secondary" className="font-normal">
-                  优先级：{demand.priority}
-                </Badge>
-              )}
-              {demand.isBlocking !== null && (
-                <Badge
-                  variant={demand.isBlocking ? "destructive" : "secondary"}
-                  className="font-normal"
-                >
-                  {demand.isBlocking ? "阻塞需求" : "非阻塞"}
-                </Badge>
-              )}
-            </div>
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  {demand.demandType && (
+                    <Badge variant="secondary" className="font-normal">
+                      {demand.demandType}
+                    </Badge>
+                  )}
+                  {demand.priority && (
+                    <Badge variant="secondary" className="font-normal">
+                      优先级：{demand.priority}
+                    </Badge>
+                  )}
+                  {demand.isBlocking !== null && (
+                    <Badge
+                      variant={demand.isBlocking ? 'destructive' : 'secondary'}
+                      className="font-normal"
+                    >
+                      {demand.isBlocking ? '阻塞需求' : '非阻塞'}
+                    </Badge>
+                  )}
+                </div>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <TrendingUp className="size-4" />
-                预期价值：
-                {formatExpectedValue(
-                  demand.valueType,
-                  demand.gmvLevel,
-                  demand.efficiencyAffected,
-                  demand.efficiencySavedMinutes,
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingUp className="size-4" />
+                    预期价值：
+                    {formatExpectedValue(
+                      demand.valueType,
+                      demand.gmvLevel,
+                      demand.efficiencyAffected,
+                      demand.efficiencySavedMinutes,
+                    )}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CalendarClock className="size-4" />
+                    预期上线：
+                    {demand.expectedOnlineTime
+                      ? dayjs(demand.expectedOnlineTime).format('YYYY-MM-DD')
+                      : '—'}
+                  </span>
+                </div>
+
+                <div className="border-t border-border pt-4">
+                  <TiptapEditorComplete
+                    value={demand.background}
+                    onValueChange={() => {}}
+                    placeholder=""
+                    readOnly
+                    className="min-h-[120px]"
+                  />
+                </div>
+
+                {demand.image && (
+                  <DemandImageLink filePath={demand.image.filePath} />
                 )}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CalendarClock className="size-4" />
-                预期上线：
-                {demand.expectedOnlineTime
-                  ? dayjs(demand.expectedOnlineTime).format("YYYY-MM-DD")
-                  : "—"}
-              </span>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <TiptapEditorComplete
-                value={demand.background}
-                onValueChange={() => {}}
-                placeholder=""
-                readOnly
-                className="min-h-[120px]"
-              />
-            </div>
-
-            {demand.image && (
-              <DemandImageLink filePath={demand.image.filePath} />
-            )}
-            </>
+              </>
             )}
           </div>
 

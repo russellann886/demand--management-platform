@@ -10,7 +10,7 @@ import {
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
-import { UserDisplay } from '@/components/business-ui/user-display';
+import { UserIdentity } from '@/components/UserIdentity';
 import { STATUS_ORDER, PROGRESS_BAR_COLORS } from './status-constants';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -61,8 +61,12 @@ const BoardCard: React.FC<BoardCardProps> = ({
           <IconComponent className="size-6" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-semibold text-foreground">{name}</h3>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{description}</p>
+          <h3 className="truncate text-base font-semibold text-foreground">
+            {name}
+          </h3>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+            {description}
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           {count !== undefined && (
@@ -79,7 +83,9 @@ const BoardCard: React.FC<BoardCardProps> = ({
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {STATUS_ORDER.map((status) => (
               <span key={status} className="flex items-center gap-1">
-                <span className={`size-2 rounded-full ${PROGRESS_BAR_COLORS[status]}`} />
+                <span
+                  className={`size-2 rounded-full ${PROGRESS_BAR_COLORS[status]}`}
+                />
                 {status} {statusCounts?.[status] ?? 0}
               </span>
             ))}
@@ -101,9 +107,16 @@ const BoardCard: React.FC<BoardCardProps> = ({
       )}
 
       {hasAdmins && (
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="shrink-0 text-xs text-muted-foreground">管理员</span>
-          <UserDisplay value={admins} size="small" />
+          {admins.slice(0, 3).map((userId) => (
+            <UserIdentity key={userId} userId={userId} />
+          ))}
+          {admins.length > 3 && (
+            <span className="text-xs text-muted-foreground">
+              另有 {admins.length - 3} 人
+            </span>
+          )}
         </div>
       )}
     </button>

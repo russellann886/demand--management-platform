@@ -275,7 +275,7 @@ export const Image = TiptapImage.extend<ImageOptions>({
   addOptions() {
     return {
       upload: async (file: File) => {
-        const data = await uploadFile(file);
+        const data = await uploadFile(file, 'image');
         return data.url;
       },
     };

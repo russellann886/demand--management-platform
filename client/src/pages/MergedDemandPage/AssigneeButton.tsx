@@ -1,12 +1,12 @@
-import { useState } from 'react';
 import { UserPlus } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { UserSelect } from '@/components/business-ui/user-select';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AssigneeButtonProps {
   value: string | null;
@@ -14,11 +14,16 @@ interface AssigneeButtonProps {
 }
 
 export function AssigneeButton({ value, onChange }: AssigneeButtonProps) {
-  const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const label = value
+    ? value === user?.id
+      ? '负责人：我'
+      : '已指定负责人'
+    : '指定负责人';
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
@@ -26,23 +31,22 @@ export function AssigneeButton({ value, onChange }: AssigneeButtonProps) {
           title="指定负责人"
         >
           <UserPlus className="size-3.5" />
-          <span className="text-xs">指定负责人</span>
+          <span className="text-xs">{label}</span>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-2" align="end">
-        <UserSelect
-          value={value}
-          onChange={(val: string | null) => {
-            onChange(val);
-            setOpen(false);
-          }}
-          triggerType="search"
-          placeholder="搜索用户..."
-          size="small"
-          defaultOpen
-        />
-      </PopoverContent>
-    </Popover>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {user && (
+          <DropdownMenuItem onSelect={() => onChange(user.id)}>
+            分配给我（{user.displayName}）
+          </DropdownMenuItem>
+        )}
+        {value && (
+          <DropdownMenuItem onSelect={() => onChange(null)}>
+            清除负责人
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

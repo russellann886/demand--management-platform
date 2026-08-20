@@ -3,14 +3,13 @@ import { Download, FileText } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useFileUrl } from '@/hooks/useFileUrl';
 import type { RuleListItem } from '@shared/api.interface';
-import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLink';
 
 interface RuleCardProps {
   rule: RuleListItem;
 }
 
 const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
-  const fileUrl = useFileUrl(rule.file?.filePath);
+  const fileUrl = useFileUrl(rule.file?.filePath, true);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -37,15 +36,15 @@ const RuleCard: React.FC<RuleCardProps> = ({ rule }) => {
       )}
 
       {fileUrl && (
-        <UniversalLink
-          to={fileUrl}
+        <a
+          href={fileUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
           <Download className="size-4" />
           下载文件
-        </UniversalLink>
+        </a>
       )}
     </div>
   );

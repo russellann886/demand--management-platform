@@ -1,4 +1,3 @@
-import { axiosForBackend } from '@lark-apaas/client-toolkit/utils/getAxiosForBackend';
 import type {
   Rule,
   RuleListResponse,
@@ -8,6 +7,7 @@ import type {
   RuleType,
   RuleStatus,
 } from '@shared/api.interface';
+import { apiRequest } from './client';
 
 interface RuleListParams {
   section?: string;
@@ -25,62 +25,49 @@ export async function list(params: RuleListParams): Promise<RuleListResponse> {
   if (params.status) query.set('status', params.status);
   if (params.creator) query.set('creator', params.creator);
   if (params.page !== undefined) query.set('page', String(params.page));
-  if (params.pageSize !== undefined) query.set('pageSize', String(params.pageSize));
+  if (params.pageSize !== undefined)
+    query.set('pageSize', String(params.pageSize));
   const qs = query.toString();
-  const res = await axiosForBackend({
-    url: qs ? `/api/rules?${qs}` : '/api/rules',
+  return apiRequest<RuleListResponse>(qs ? `/api/rules?${qs}` : '/api/rules', {
     method: 'GET',
   });
-  return res.data;
 }
 
 export async function getById(id: string): Promise<Rule> {
-  const res = await axiosForBackend({
-    url: `/api/rules/${id}`,
+  return apiRequest<Rule>(`/api/rules/${encodeURIComponent(id)}`, {
     method: 'GET',
   });
-  return res.data;
 }
 
-export async function create(
-  body: CreateRuleRequest,
-): Promise<{ id: string }> {
-  const res = await axiosForBackend({
-    url: '/api/rules',
+export async function create(body: CreateRuleRequest): Promise<{ id: string }> {
+  return apiRequest<{ id: string }>('/api/rules', {
     method: 'POST',
-    data: body,
+    body,
   });
-  return res.data;
 }
 
 export async function update(
   id: string,
   body: UpdateRuleRequest,
 ): Promise<{ id: string }> {
-  const res = await axiosForBackend({
-    url: `/api/rules/${id}`,
+  return apiRequest<{ id: string }>(`/api/rules/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    data: body,
+    body,
   });
-  return res.data;
 }
 
 export async function remove(id: string): Promise<{ id: string }> {
-  const res = await axiosForBackend({
-    url: `/api/rules/${id}`,
+  return apiRequest<{ id: string }>(`/api/rules/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
-  return res.data;
 }
 
 export async function updateStatus(
   id: string,
   body: UpdateRuleStatusRequest,
 ): Promise<{ id: string }> {
-  const res = await axiosForBackend({
-    url: `/api/rules/${id}/status`,
-    method: 'PATCH',
-    data: body,
-  });
-  return res.data;
+  return apiRequest<{ id: string }>(
+    `/api/rules/${encodeURIComponent(id)}/status`,
+    { method: 'PATCH', body },
+  );
 }

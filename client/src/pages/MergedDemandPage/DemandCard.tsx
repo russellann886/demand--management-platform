@@ -1,6 +1,13 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Layers, FilePlus, ChevronRight, Check, Link as LinkIcon } from 'lucide-react';
+import {
+  Trash2,
+  Layers,
+  FilePlus,
+  ChevronRight,
+  Check,
+  Link as LinkIcon,
+} from 'lucide-react';
 import dayjs from 'dayjs';
 
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +25,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { AssigneeButton } from './AssigneeButton';
 import { SubmitterDisplay } from '@/components/SubmitterDisplay';
-import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLink';
 
 import { updateDemandAssignee, updateDemandStatus } from '@/api/demand';
 import { mergedDemand as mergedDemandApi } from '@/api';
@@ -128,7 +134,9 @@ const DemandCard: React.FC<DemandCardProps> = ({
 }) => {
   const hasFormFields = Boolean(formFields && formFields.length > 0);
   const isMerged = record.type === 'merged';
-  const plainText = extractTextFromHtml(record.background || record.title || '');
+  const plainText = extractTextFromHtml(
+    record.background || record.title || '',
+  );
 
   const updateAssignee = async (newAssignee: string | null) => {
     try {
@@ -228,10 +236,7 @@ const DemandCard: React.FC<DemandCardProps> = ({
         {/* Right: status, assignee, actions */}
         <div className="flex shrink-0 items-center gap-2">
           <StatusCell record={record} onRefresh={onRefresh} />
-          <AssigneeButton
-            value={record.assignee}
-            onChange={updateAssignee}
-          />
+          <AssigneeButton value={record.assignee} onChange={updateAssignee} />
           {isMerged && (
             <>
               <Button
@@ -260,12 +265,15 @@ const DemandCard: React.FC<DemandCardProps> = ({
                   <AlertDialogHeader>
                     <AlertDialogTitle>删除整合需求？</AlertDialogTitle>
                     <AlertDialogDescription>
-                      删除后「{record.title}」将被移除，其关联的所有原始需求会回到原始需求列表。
+                      删除后「{record.title}
+                      」将被移除，其关联的所有原始需求会回到原始需求列表。
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>取消</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDeleteMerged(record.id)}>
+                    <AlertDialogAction
+                      onClick={() => onDeleteMerged(record.id)}
+                    >
                       确认删除
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -288,11 +296,18 @@ const DemandCard: React.FC<DemandCardProps> = ({
           >
             <div className="border-t border-border px-4 pb-4 pt-3">
               {detailGroups.map((group, gi) => (
-                <div key={gi} className={gi > 0 ? 'mt-3 pt-3 border-t border-border/40' : ''}>
+                <div
+                  key={gi}
+                  className={
+                    gi > 0 ? 'mt-3 pt-3 border-t border-border/40' : ''
+                  }
+                >
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
                     {group.fields.map((field, i) => (
                       <div key={i} className="min-w-0">
-                        <dt className="text-xs font-medium text-muted-foreground">{field.label}</dt>
+                        <dt className="text-xs font-medium text-muted-foreground">
+                          {field.label}
+                        </dt>
                         <dd className="mt-0.5">{field.content}</dd>
                       </div>
                     ))}
@@ -454,9 +469,9 @@ function buildStandardDetailFields(
         return (
           <div className="flex flex-col gap-1">
             {links.map((url, i) => (
-              <UniversalLink
+              <a
                 key={i}
-                to={url}
+                href={url}
                 target="_blank"
                 rel="noopener noreferrer"
                 title={url}
@@ -464,7 +479,7 @@ function buildStandardDetailFields(
               >
                 <LinkIcon className="size-3 shrink-0" />
                 <span className="max-w-[150px] truncate">{url}</span>
-              </UniversalLink>
+              </a>
             ))}
           </div>
         );

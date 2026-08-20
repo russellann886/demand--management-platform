@@ -1,18 +1,43 @@
-import { UserDisplay } from "@/components/business-ui/user-display";
+import { useAuth } from '@/auth/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 interface SubmitterDisplayProps {
   creator: string;
   submitterName: string | null;
-  size?: "small" | "medium" | "large";
+  size?: 'small' | 'medium' | 'large';
 }
 
 export const SubmitterDisplay = ({
   creator,
   submitterName,
-  size = "small",
+  size = 'small',
 }: SubmitterDisplayProps) => {
+  const { user } = useAuth();
+
   if (creator) {
-    return <UserDisplay value={[creator]} size={size} />;
+    const isCurrentUser = creator === user?.id;
+    const displayName = isCurrentUser ? user.displayName : '内部用户';
+    return (
+      <span className="inline-flex min-w-0 items-center gap-1.5">
+        <Avatar
+          className={cn(
+            'shrink-0',
+            size === 'small'
+              ? 'size-5'
+              : size === 'medium'
+                ? 'size-7'
+                : 'size-9',
+          )}
+        >
+          {isCurrentUser && (
+            <AvatarImage src={user.avatarUrl ?? undefined} alt={displayName} />
+          )}
+          <AvatarFallback>{displayName.slice(0, 1)}</AvatarFallback>
+        </Avatar>
+        <span className="truncate text-foreground">{displayName}</span>
+      </span>
+    );
   }
   if (submitterName) {
     return (

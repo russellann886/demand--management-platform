@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { UserDisplay } from '@/components/business-ui/user-display';
+import { UserIdentity } from '@/components/UserIdentity';
 import { rule as ruleApi } from '@/api';
 import type { RuleListItem } from '@shared/api.interface';
 
@@ -36,7 +36,9 @@ const ApplicationReviewCard: React.FC<ApplicationReviewCardProps> = ({
   onReviewed,
 }) => {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [reviewAction, setReviewAction] = useState<'已通过' | '已驳回'>('已通过');
+  const [reviewAction, setReviewAction] = useState<'已通过' | '已驳回'>(
+    '已通过',
+  );
   const [feedback, setFeedback] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
 
@@ -68,7 +70,9 @@ const ApplicationReviewCard: React.FC<ApplicationReviewCardProps> = ({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="truncate font-medium text-foreground">{item.name}</h4>
+            <h4 className="truncate font-medium text-foreground">
+              {item.name}
+            </h4>
             <span
               className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                 TYPE_BADGE[item.type] ?? ''
@@ -109,9 +113,11 @@ const ApplicationReviewCard: React.FC<ApplicationReviewCardProps> = ({
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <span>提交人：</span>
-          <UserDisplay value={item.creator} size="small" />
+          <UserIdentity userId={item.creator} />
         </div>
-        <span>提交时间：{dayjs(item.createdAt).format('YYYY-MM-DD HH:mm')}</span>
+        <span>
+          提交时间：{dayjs(item.createdAt).format('YYYY-MM-DD HH:mm')}
+        </span>
       </div>
 
       <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
@@ -122,7 +128,9 @@ const ApplicationReviewCard: React.FC<ApplicationReviewCardProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">审批意见</label>
+            <label className="text-sm font-medium text-foreground">
+              审批意见
+            </label>
             <Textarea
               value={feedback}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>

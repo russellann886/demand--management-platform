@@ -47,8 +47,11 @@ import { mergedDemand as mergedDemandApi } from '@/api';
 import type { UnifiedRow, ResolvedSource } from './unified-rows';
 import { computeAutoScore, getRowFinalScore } from './unified-rows';
 import { SCORE_LEVEL_META, type ScoreLevel } from './demand-scoring';
-import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLink';
-import type { FormFieldDefinition, CustomFields, CustomFieldValue } from '@shared/api.interface';
+import type {
+  FormFieldDefinition,
+  CustomFields,
+  CustomFieldValue,
+} from '@shared/api.interface';
 
 export function extractLinks(html: string | null | undefined): string[] {
   if (!html) return [];
@@ -98,7 +101,11 @@ export const ImageThumbs: React.FC<{ images: string[] }> = ({ images }) => {
               type="button"
               className="block size-10 cursor-zoom-in overflow-hidden rounded-md border border-border"
             >
-              <Image src={src} className="size-full object-cover" alt="示意图" />
+              <Image
+                src={src}
+                className="size-full object-cover"
+                alt="示意图"
+              />
             </button>
           </DialogTrigger>
           <DialogContent className="flex max-w-3xl items-center justify-center bg-transparent p-2 shadow-none">
@@ -117,10 +124,10 @@ export const ImageThumbs: React.FC<{ images: string[] }> = ({ images }) => {
 export const STATUS_OPTIONS = ['待处理', '跟进中', '已完成', '已关闭'];
 
 const STATUS_STYLES: Record<string, string> = {
-  '待处理': 'border-border bg-muted/30 text-muted-foreground',
-  '跟进中': 'border-primary/30 bg-primary/10 text-primary',
-  '已完成': 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600',
-  '已关闭': 'border-muted-foreground/20 bg-muted/40 text-muted-foreground/70',
+  待处理: 'border-border bg-muted/30 text-muted-foreground',
+  跟进中: 'border-primary/30 bg-primary/10 text-primary',
+  已完成: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600',
+  已关闭: 'border-muted-foreground/20 bg-muted/40 text-muted-foreground/70',
 };
 
 export const ScoreCell: React.FC<{
@@ -337,7 +344,9 @@ export const StatusCell: React.FC<{
   return (
     <>
       <Select value={currentStatus} onValueChange={handleValueChange}>
-        <SelectTrigger className={`h-7 w-[85px] text-xs ${STATUS_STYLES[currentStatus] ?? ''}`}>
+        <SelectTrigger
+          className={`h-7 w-[85px] text-xs ${STATUS_STYLES[currentStatus] ?? ''}`}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -429,15 +438,15 @@ export function renderCustomFieldValue(
       );
     case 'link':
       return (
-        <UniversalLink
-          to={String(value)}
+        <a
+          href={String(value)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1 text-xs text-primary hover:underline"
         >
           <LinkIcon className="size-3 shrink-0" />
           <span className="max-w-[150px] truncate">{String(value)}</span>
-        </UniversalLink>
+        </a>
       );
     case 'image': {
       const fa = value as { bucketId: string; filePath: string };
@@ -477,9 +486,7 @@ export const ExpandedSources: React.FC<{
 }> = ({ mergedId, sources, onReleaseSource }) => {
   if (sources.length === 0) {
     return (
-      <p className="py-3 text-sm text-muted-foreground">
-        暂无关联的原始需求
-      </p>
+      <p className="py-3 text-sm text-muted-foreground">暂无关联的原始需求</p>
     );
   }
   return (
@@ -506,9 +513,9 @@ export const ExpandedSources: React.FC<{
                 return (
                   <div className="flex flex-col gap-0.5 pl-6">
                     {links.map((url, i) => (
-                      <UniversalLink
+                      <a
                         key={i}
-                        to={url}
+                        href={url}
                         target="_blank"
                         rel="noopener noreferrer"
                         title={url}
@@ -516,7 +523,7 @@ export const ExpandedSources: React.FC<{
                       >
                         <LinkIcon className="size-3 shrink-0" />
                         <span className="max-w-[220px] truncate">{url}</span>
-                      </UniversalLink>
+                      </a>
                     ))}
                   </div>
                 );
@@ -542,7 +549,11 @@ export const ExpandedSources: React.FC<{
               )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground"
+                  >
                     <Unlink className="size-4" />
                     释放
                   </Button>
@@ -551,7 +562,8 @@ export const ExpandedSources: React.FC<{
                   <AlertDialogHeader>
                     <AlertDialogTitle>释放该原始需求？</AlertDialogTitle>
                     <AlertDialogDescription>
-                      释放后「{s.title}」将从此整合需求移除，重新回到原始需求列表。
+                      释放后「{s.title}
+                      」将从此整合需求移除，重新回到原始需求列表。
                       若整合需求剩余关联不足 2 条，整条整合需求将自动解散。
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -572,4 +584,3 @@ export const ExpandedSources: React.FC<{
     </div>
   );
 };
-

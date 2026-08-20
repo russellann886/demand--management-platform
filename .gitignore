@@ -10,7 +10,11 @@ build/
 
 # Environment files
 .env
-.env.local
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 .npmrc
 
 # Logs
@@ -50,6 +54,7 @@ Thumbs.db
 tmp/
 temp/
 .playwright-cli/
+*.zip
 
 # Lock files (keep package-lock.json for consistent installs)
 yarn.lock
@@ -58,6 +63,7 @@ pnpm-lock.yaml
 # Cache files
 .eslintcache
 *.tsbuildinfo
+.wrangler/
 
 # swc wasm
 .swc

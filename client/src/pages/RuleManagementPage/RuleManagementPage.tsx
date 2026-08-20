@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { ArrowLeft, Inbox, Upload, Edit, Trash2, FileText } from 'lucide-react';
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
-import { logger } from '@lark-apaas/client-toolkit/logger';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -24,7 +24,6 @@ import {
 } from '@shared/api.interface';
 import RuleUploadDialog from './RuleUploadDialog';
 import ApplicationReviewCard from './ApplicationReviewCard';
-import { UniversalLink } from '@lark-apaas/client-toolkit/components/UniversalLink';
 
 function getAccessibleRuleSections(
   isSuperAdmin: boolean,
@@ -44,18 +43,19 @@ function getAccessibleRuleSections(
 }
 
 const FileDownloadLink: React.FC<{ filePath: string }> = ({ filePath }) => {
-  const url = useFileUrl(filePath);
-  if (!url) return <span className="text-xs text-muted-foreground">加载中...</span>;
+  const url = useFileUrl(filePath, true);
+  if (!url)
+    return <span className="text-xs text-muted-foreground">加载中...</span>;
   return (
-    <UniversalLink
-      to={url}
+    <a
+      href={url}
       target="_blank"
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
     >
       <FileText className="size-3.5" />
       下载文件
-    </UniversalLink>
+    </a>
   );
 };
 
@@ -78,7 +78,12 @@ const RuleManagementPage: React.FC = () => {
     setLoading(true);
     try {
       const [ruleRes, appRes] = await Promise.all([
-        ruleApi.list({ section: selectedSection, type: '规则', page: 1, pageSize: 50 }),
+        ruleApi.list({
+          section: selectedSection,
+          type: '规则',
+          page: 1,
+          pageSize: 50,
+        }),
         ruleApi.list({ section: selectedSection, page: 1, pageSize: 50 }),
       ]);
       setRules(ruleRes.items);
@@ -156,9 +161,7 @@ const RuleManagementPage: React.FC = () => {
 
   const tabButtonClass = (isActive: boolean): string =>
     `relative px-4 py-2 text-sm font-medium transition-colors ${
-      isActive
-        ? 'text-primary'
-        : 'text-muted-foreground hover:text-foreground'
+      isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
     }`;
 
   return (

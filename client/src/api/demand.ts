@@ -1,4 +1,3 @@
-import { axiosForBackend } from '@lark-apaas/client-toolkit/utils/getAxiosForBackend';
 import type {
   CreateCommentRequest,
   CreateCommentResponse,
@@ -11,44 +10,42 @@ import type {
   UpdateDemandAssigneeRequest,
   UpdateDemandScoreRequest,
 } from '@shared/api.interface';
+import { apiRequest } from './client';
 
 export async function getDemands(
   categoryId: string,
   page: number,
   pageSize: number,
 ): Promise<DemandListResponse> {
-  const res = await axiosForBackend({
-    url: `/api/demands?categoryId=${categoryId}&page=${page}&pageSize=${pageSize}`,
+  const query = new URLSearchParams({
+    categoryId,
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  return apiRequest<DemandListResponse>(`/api/demands?${query}`, {
     method: 'GET',
   });
-  return res.data;
 }
 
 export async function getMyDemands(): Promise<MyDemandListResponse> {
-  const res = await axiosForBackend({
-    url: '/api/demands/my',
+  return apiRequest<MyDemandListResponse>('/api/demands/my', {
     method: 'GET',
   });
-  return res.data;
 }
 
 export async function getDemandDetail(id: string): Promise<DemandDetail> {
-  const res = await axiosForBackend({
-    url: `/api/demands/${id}`,
+  return apiRequest<DemandDetail>(`/api/demands/${encodeURIComponent(id)}`, {
     method: 'GET',
   });
-  return res.data;
 }
 
 export async function createDemand(
   body: CreateDemandRequest,
 ): Promise<CreateDemandResponse> {
-  const res = await axiosForBackend({
-    url: '/api/demands',
+  return apiRequest<CreateDemandResponse>('/api/demands', {
     method: 'POST',
-    data: body,
+    body,
   });
-  return res.data;
 }
 
 export async function getDemandComments(
@@ -56,23 +53,24 @@ export async function getDemandComments(
   page: number,
   pageSize: number,
 ): Promise<DemandCommentListResponse> {
-  const res = await axiosForBackend({
-    url: `/api/demands/${id}/comments?page=${page}&pageSize=${pageSize}`,
-    method: 'GET',
+  const query = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
   });
-  return res.data;
+  return apiRequest<DemandCommentListResponse>(
+    `/api/demands/${encodeURIComponent(id)}/comments?${query}`,
+    { method: 'GET' },
+  );
 }
 
 export async function createComment(
   id: string,
   body: CreateCommentRequest,
 ): Promise<CreateCommentResponse> {
-  const res = await axiosForBackend({
-    url: `/api/demands/${id}/comments`,
-    method: 'POST',
-    data: body,
-  });
-  return res.data;
+  return apiRequest<CreateCommentResponse>(
+    `/api/demands/${encodeURIComponent(id)}/comments`,
+    { method: 'POST', body },
+  );
 }
 
 export async function updateDemandStatus(
@@ -80,34 +78,28 @@ export async function updateDemandStatus(
   status: string,
   plannedSchedule?: string | null,
 ): Promise<{ success: boolean }> {
-  const res = await axiosForBackend({
-    url: `/api/demands/${id}/status`,
-    method: 'PATCH',
-    data: { status, plannedSchedule },
-  });
-  return res.data;
+  return apiRequest<{ success: boolean }>(
+    `/api/demands/${encodeURIComponent(id)}/status`,
+    { method: 'PATCH', body: { status, plannedSchedule } },
+  );
 }
 
 export async function updateDemandScore(
   id: string,
   body: UpdateDemandScoreRequest,
 ): Promise<{ success: boolean }> {
-  const res = await axiosForBackend({
-    url: `/api/demands/${id}/score`,
-    method: 'PATCH',
-    data: body,
-  });
-  return res.data;
+  return apiRequest<{ success: boolean }>(
+    `/api/demands/${encodeURIComponent(id)}/score`,
+    { method: 'PATCH', body },
+  );
 }
 
 export async function updateDemandAssignee(
   id: string,
   body: UpdateDemandAssigneeRequest,
 ): Promise<{ success: boolean }> {
-  const res = await axiosForBackend({
-    url: `/api/demands/${id}/assignee`,
-    method: 'PATCH',
-    data: body,
-  });
-  return res.data;
+  return apiRequest<{ success: boolean }>(
+    `/api/demands/${encodeURIComponent(id)}/assignee`,
+    { method: 'PATCH', body },
+  );
 }
