@@ -1,20 +1,10 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tsconfigPaths from "vite-tsconfig-paths";
+import path from 'path';
+import { defineConfig } from '@lark-apaas/fullstack-vite-preset';
 
-// https://vite.dev/config/
 export default defineConfig({
-  build: {
-    sourcemap: 'hidden',
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'client/src'),
+    },
   },
-  plugins: [
-    react({
-      babel: {
-        plugins: [
-          'react-dev-locator',
-        ],
-      },
-    }),
-    tsconfigPaths()
-  ],
-})
+});

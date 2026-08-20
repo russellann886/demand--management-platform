@@ -1,0 +1,34 @@
+{
+  "id": "demand_merge_analyzer",
+  "pluginKey": "@official-plugins/ai-text-generate",
+  "pluginVersion": "1.0.17",
+  "name": "需求整合分析",
+  "description": "接收包含所有现有需求的JSON列表的提示词文本，由AI判断哪些需求可以整合合并，输出整合分组建议，流式输出生成的文本内容。",
+  "icon": "",
+  "paramsSchema": {
+    "required": [
+      "prompt"
+    ],
+    "order": [
+      "prompt"
+    ],
+    "type": "object",
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "description": "用户传入的完整分析提示词，包含所有现有需求的JSON列表"
+      }
+    }
+  },
+  "formValue": {
+    "prompt": "{{input.prompt}}",
+    "modelID": "2006",
+    "modelParams": {
+      "temperature": 0.3,
+      "maxTokens": 17094
+    }
+  },
+  "createdAt": 1782294872402,
+  "updatedAt": 1782737844548,
+  "createdBy": 7652175384645143757
+}

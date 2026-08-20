@@ -1,28 +1,45 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
+const tseslint = require('typescript-eslint');
+const { eslintPresetsOfSimple } = require('@lark-apaas/fullstack-presets');
 
-export default tseslint.config(
-  { ignores: ['dist'] },
+module.exports = tseslint.config(
+  { ignores: ['dist', 'dist-server', 'node_modules', 'client/src/api/gen', '**/*.d.ts', '**/*.js.map'] },
+  // Client configuration
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
-    files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-    },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-    },
-    rules: {
-      ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+    files: ['client/**/*.{ts,tsx}', 'shared/**/*.{ts,tsx}'],
+    extends: [
+      ...eslintPresetsOfSimple.client,
+    ],
+    settings: {
+      'import/resolver': {
+        alias: {
+          map: [
+            ['@', './client/src'],
+            ['@client', './client'],
+            ['@shared', './shared'],
+          ],
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
+      },
     },
   },
-)
+  // Server configuration
+  {
+    files: ['server/**/*.{ts,tsx}', 'shared/**/*.{ts,tsx}'],
+    extends: [
+      ...eslintPresetsOfSimple.server,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.node.json',
+      }
+    },
+    settings: {
+      'import/resolver': {
+        alias: {
+          map: [['@server', './server'], ['@shared', './shared']],
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
+      }
+    }
+  },
+);

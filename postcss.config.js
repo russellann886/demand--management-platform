@@ -1,10 +1,10 @@
-/** WARNING: DON'T EDIT THIS FILE */
-/** WARNING: DON'T EDIT THIS FILE */
-/** WARNING: DON'T EDIT THIS FILE */
-
-export default {
+/**
+ * @type {import('postcss-load-config').Config}
+ */
+module.exports = {
   plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
+    'postcss-import': {},
+    '@tailwindcss/postcss': {},
+    autoprefixer: {}
   },
-};
+}

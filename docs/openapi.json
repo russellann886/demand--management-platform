@@ -1,0 +1,110 @@
+{
+  "paths": {
+    "/openapi/demands": {
+      "post": {
+        "operationId": "create",
+        "summary": "外部系统提交需求",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["categoryId", "title", "background"],
+                "properties": {
+                  "categoryId": {
+                    "type": "string",
+                    "description": "需求栏目 ID（必须为已启用的栏目）",
+                    "example": "3ba2fbb9-9732-4775-90f0-344692dc3a6c"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "需求标题",
+                    "example": "希望支持批量导出订单"
+                  },
+                  "background": {
+                    "type": "string",
+                    "description": "需求背景与描述，支持 HTML 富文本",
+                    "example": "<p>当前只能逐条导出，效率很低</p>"
+                  },
+                  "department": {
+                    "type": "string",
+                    "description": "提出部门",
+                    "example": "平台运营"
+                  },
+                  "submitterName": {
+                    "type": "string",
+                    "description": "提交人姓名（外部提交无妙搭账号，展示为该姓名）",
+                    "example": "张伟"
+                  },
+                  "valueType": {
+                    "type": "string",
+                    "enum": ["gmv", "efficiency"],
+                    "description": "预期价值类型：gmv 增长或效率提升",
+                    "example": "efficiency"
+                  },
+                  "gmvLevel": {
+                    "type": "string",
+                    "description": "GMV 影响等级（valueType 为 gmv 时填写）",
+                    "example": "high"
+                  },
+                  "efficiencyAffected": {
+                    "type": "string",
+                    "description": "受影响的效率环节（valueType 为 efficiency 时填写）",
+                    "example": "订单处理"
+                  },
+                  "efficiencySavedMinutes": {
+                    "type": "string",
+                    "description": "预计每次可节省的分钟数",
+                    "example": "30"
+                  },
+                  "expectedOnlineTime": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "期望上线时间（ISO 8601）",
+                    "example": "2026-08-01T00:00:00.000Z"
+                  },
+                  "demandType": {
+                    "type": "string",
+                    "description": "需求类型",
+                    "example": "功能优化"
+                  },
+                  "isBlocking": {
+                    "type": "boolean",
+                    "description": "是否为阻塞性需求",
+                    "example": false
+                  },
+                  "priority": {
+                    "type": "string",
+                    "description": "优先级",
+                    "example": "high"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功，返回新需求 ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "新建需求的 ID",
+                      "example": "a1b2c3d4-0000-1111-2222-333344445555"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
