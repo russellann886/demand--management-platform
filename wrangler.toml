@@ -16,7 +16,7 @@ OPENROUTER_MODEL = "openai/gpt-4o-mini"
 [[d1_databases]]
 binding = "DB"
 database_name = "demand-management-platform-db"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "b97434dd-7dc0-4517-ab51-b5456c7451b0"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
