@@ -260,7 +260,7 @@ export async function isReferencedObject(
          WHERE json_extract(image, '$.fileKey') = ?
             OR json_extract(image, '$.r2Key') = ?
             OR json_extract(image, '$.filePath') = ?
-            OR background LIKE '%' || ? || '%'
+            OR instr(background, ?) > 0
             OR EXISTS (
               SELECT 1 FROM json_tree(demand.custom_fields)
               WHERE json_tree.key IN ('fileKey', 'r2Key', 'filePath')

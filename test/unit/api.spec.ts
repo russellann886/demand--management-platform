@@ -98,6 +98,35 @@ describe('Cloudflare business API', () => {
       ],
     });
 
+    const uploadForm = new FormData();
+    uploadForm.set('purpose', 'attachment');
+    uploadForm.set(
+      'file',
+      new File(['production-check'], 'production-check.txt', {
+        type: 'text/plain',
+      }),
+    );
+    const upload = await request('/api/files', {
+      method: 'POST',
+      body: uploadForm,
+    });
+    expect(upload.status).toBe(201);
+    const uploadedFile = (await upload.json()) as { filePath: string };
+    expect(
+      await request(
+        `/api/files/content?key=${encodeURIComponent(uploadedFile.filePath)}`,
+      ),
+    ).toMatchObject({ status: 200 });
+    expect(
+      await request(
+        `/api/files?key=${encodeURIComponent(uploadedFile.filePath)}`,
+        { method: 'DELETE' },
+      ),
+    ).toMatchObject({ status: 204 });
+    expect(
+      await files.get(uploadedFile.filePath, 'arrayBuffer'),
+    ).toBeNull();
+
     const demandIds: string[] = [];
     for (const title of ['需求一', '需求二', '需求三']) {
       const response = await jsonRequest('/api/demands', 'POST', {
