@@ -12,9 +12,16 @@ type FilesEnv = {
 
 export type FilePurpose = 'image' | 'rule' | 'attachment';
 
-const R2_BUCKET_ID = 'r2';
+type FileMetadata = {
+  contentType: string;
+  ownerId: string;
+  purpose: FilePurpose;
+  originalName: string;
+};
+
+const KV_BUCKET_ID = 'kv';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
+const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const OBJECT_KEY_PATTERN =
   /^users\/[A-Za-z0-9_-]{1,128}\/(images|rules|attachments)\/[0-9a-f-]{36}\/[A-Za-z0-9._-]{1,160}$/;
 
@@ -85,12 +92,9 @@ export function createFilesRouter(
 
     const user = context.get('user');
     const key = createObjectKey(user.id, purpose, file.name);
-    await context.env.FILES.put(key, file, {
-      httpMetadata: {
+    await context.env.FILES.put(key, await file.arrayBuffer(), {
+      metadata: {
         contentType: file.type,
-        contentDisposition: contentDisposition(file.name, false),
-      },
-      customMetadata: {
         ownerId: user.id,
         purpose,
         originalName: safeMetadataValue(file.name),
@@ -100,7 +104,7 @@ export function createFilesRouter(
     return context.json(
       {
         id: key,
-        bucketId: R2_BUCKET_ID,
+        bucketId: KV_BUCKET_ID,
         filePath: key,
         url: fileUrl(key, false),
         downloadUrl: fileUrl(key, true),
@@ -131,7 +135,7 @@ export function createFilesRouter(
         'The file is referenced by a business record and cannot be deleted.',
       );
     }
-    if (!(await context.env.FILES.head(key))) {
+    if (!(await context.env.FILES.get(key, 'stream'))) {
       return errorResponse(
         context,
         404,
@@ -174,8 +178,11 @@ async function serveFile(
     );
   }
 
-  const object = await context.env.FILES.get(key);
-  if (!object) {
+  const result = await context.env.FILES.getWithMetadata(
+    key,
+    'arrayBuffer',
+  );
+  if (!result.value) {
     return errorResponse(
       context,
       404,
@@ -184,19 +191,19 @@ async function serveFile(
     );
   }
 
+  const metadata = result.metadata as FileMetadata | null;
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('etag', object.httpEtag);
+  headers.set('content-type', metadata?.contentType ?? 'application/octet-stream');
   headers.set('cache-control', 'private, no-store');
   headers.set('x-content-type-options', 'nosniff');
   const originalName =
-    object.customMetadata?.originalName ?? fileNameFromKey(key);
+    metadata?.originalName ?? fileNameFromKey(key);
   headers.set(
     'content-disposition',
     contentDisposition(originalName, download),
   );
 
-  return new Response(object.body, { headers });
+  return new Response(result.value, { headers });
 }
 
 export function validateUpload(
@@ -250,23 +257,25 @@ export async function isReferencedObject(
       `SELECT 1 AS found
        WHERE EXISTS (
          SELECT 1 FROM demand
-         WHERE json_extract(image, '$.r2Key') = ?
+         WHERE json_extract(image, '$.fileKey') = ?
+            OR json_extract(image, '$.r2Key') = ?
             OR json_extract(image, '$.filePath') = ?
             OR background LIKE '%' || ? || '%'
             OR EXISTS (
               SELECT 1 FROM json_tree(demand.custom_fields)
-              WHERE json_tree.key IN ('r2Key', 'filePath')
+              WHERE json_tree.key IN ('fileKey', 'r2Key', 'filePath')
                 AND json_tree.value = ?
             )
        )
        OR EXISTS (
          SELECT 1 FROM rule
-         WHERE json_extract(file, '$.r2Key') = ?
+         WHERE json_extract(file, '$.fileKey') = ?
+            OR json_extract(file, '$.r2Key') = ?
             OR json_extract(file, '$.filePath') = ?
        )
        LIMIT 1`,
     )
-    .bind(key, key, encodeURIComponent(key), key, key, key)
+    .bind(key, key, key, encodeURIComponent(key), key, key, key, key)
     .first<{ found: number }>();
 
   return row?.found === 1;

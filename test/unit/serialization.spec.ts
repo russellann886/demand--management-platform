@@ -25,7 +25,7 @@ describe('D1 scalar and JSON conversion', () => {
     ]);
   });
 
-  it('stores and hydrates nested R2 attachments in arbitrary JSON', () => {
+  it('stores and hydrates nested KV attachments in arbitrary JSON', () => {
     const filePath =
       'users/user/images/33333333-3333-4333-8333-333333333333/image.png';
     const stored = serializeJson({
@@ -34,7 +34,7 @@ describe('D1 scalar and JSON conversion', () => {
     });
 
     expect(stored).toBe(
-      `{"gallery":[{"r2Key":"${filePath}"}],"enabled":true}`,
+      `{"gallery":[{"fileKey":"${filePath}"}],"enabled":true}`,
     );
     expect(
       deserializeJson(
@@ -51,7 +51,7 @@ describe('D1 scalar and JSON conversion', () => {
         'custom_fields',
       ),
     ).toEqual({
-      gallery: [{ bucketId: 'r2', filePath }],
+      gallery: [{ bucketId: 'kv', filePath }],
       enabled: true,
     });
   });
@@ -62,7 +62,7 @@ describe('D1 scalar and JSON conversion', () => {
     expect(() => deserializeStringArray('{"not":"an array"}')).toThrow(
       'unexpected shape',
     );
-    expect(() => deserializeAttachment('{"r2Key":""}')).toThrow(
+    expect(() => deserializeAttachment('{"fileKey":""}')).toThrow(
       'unexpected shape',
     );
     expect(() =>

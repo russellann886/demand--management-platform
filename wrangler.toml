@@ -19,10 +19,9 @@ database_name = "demand-management-platform-db"
 database_id = "b97434dd-7dc0-4517-ab51-b5456c7451b0"
 migrations_dir = "migrations"
 
-[[r2_buckets]]
+[[kv_namespaces]]
 binding = "FILES"
-bucket_name = "demand-management-platform-files"
-preview_bucket_name = "demand-management-platform-files-preview"
+id = "c8c83356574b435291e756d1d27f0423"
 
 [observability]
 enabled = true

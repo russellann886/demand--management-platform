@@ -10,6 +10,6 @@ binding = "DB"
 database_name = "demand-management-platform-api-test"
 database_id = "00000000-0000-0000-0000-000000000000"
 
-[[r2_buckets]]
+[[kv_namespaces]]
 binding = "FILES"
-bucket_name = "demand-management-platform-files-test"
+id = "00000000000000000000000000000000"

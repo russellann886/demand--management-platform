@@ -1,7 +1,8 @@
 # 需求管理平台
 
 基于 React、Vite、Hono 和 Cloudflare Workers 的需求管理平台。前端静态资源与
-`/api/*`、`/openapi/*` 由同一 Worker 提供，业务数据存储在 D1，附件存储在 R2。
+`/api/*`、`/openapi/*` 由同一 Worker 提供，业务数据存储在 D1，附件存储在
+Workers KV。单个图片最大 10 MiB，其他附件最大 20 MiB。
 
 ## 本地开发
 
@@ -59,13 +60,12 @@ npm run build
 ```bash
 npx wrangler login
 npx wrangler d1 create demand-management-platform-db
-npx wrangler r2 bucket create demand-management-platform-files
-npx wrangler r2 bucket create demand-management-platform-files-preview
+npx wrangler kv namespace create demand-management-platform-files
 ```
 
-将 D1 创建结果中的真实 `database_id` 替换到 `wrangler.toml`。R2 没有需要填写
-的 ID；若创建时使用了不同名称，请同步替换 `bucket_name` 和
-`preview_bucket_name`。仓库中的全零 D1 ID 只是占位符，不能用于生产部署。
+将 D1 创建结果中的真实 `database_id` 和 KV 创建结果中的真实 `id` 替换到
+`wrangler.toml`。也可以在 Cloudflare Dashboard 中分别创建 D1 数据库和 KV
+namespace，再复制资源 ID。仓库中的全零 KV ID 只是占位符，不能用于生产部署。
 
 对远程 D1 执行 migration：
 
@@ -129,7 +129,7 @@ npm run build
 2. 将生产分支设为 `main`，根目录设为 `/`。
 3. Build command 设为 `npm run build:client`。
 4. Deploy command 设为 `npx wrangler deploy`。
-5. 在部署前确认 D1/R2 绑定名称与 `wrangler.toml` 一致，并配置上述 Secrets。
+5. 在部署前确认 D1/KV 绑定名称与 `wrangler.toml` 一致，并配置上述 Secrets。
 6. 保存后触发首次部署；此后 `main` 的新提交会自动触发生产部署。
 
 不使用 Git 集成时，可在完成远程 migration 和 Secret 配置后手动发布：
@@ -162,7 +162,8 @@ curl https://<production-hostname>/api/health
   当前 Cloudflare 账户拥有该数据库。
 - `no such table`：执行 `npx wrangler d1 migrations apply DB --local` 或
   `--remote`，并确认命令使用了正确环境。
-- 附件上传或读取失败：确认 `FILES` 绑定、R2 bucket 名称和当前账户一致。
+- 附件上传或读取失败：确认 `FILES` KV namespace ID 和当前账户一致，并检查
+  文件是否超过 10 MiB 图片限制或 20 MiB 文档限制。
 - API 返回 `401 AUTH_REQUIRED`：本地检查 `.dev.vars` 中的 `APP_ENV` 和
   `DEV_USER_EMAIL`；生产检查 Access application、策略及身份头。
 - 首个管理员没有权限：确认 `SUPER_ADMIN_EMAILS` Secret 包含其 Access 邮箱，

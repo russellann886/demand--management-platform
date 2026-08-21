@@ -22,7 +22,7 @@ type FilesEnv = {
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const OTHER_USER_ID = '22222222-2222-4222-8222-222222222222';
 
-describe('R2 file routes', () => {
+describe('KV file routes', () => {
   it('requires Cloudflare Access authentication', async () => {
     const response = await createFilesRouter().request(
       'https://example.com/files/content?key=invalid',
@@ -56,16 +56,16 @@ describe('R2 file routes', () => {
     };
 
     expect(response.status).toBe(201);
-    expect(result.bucketId).toBe('r2');
+    expect(result.bucketId).toBe('kv');
     expect(result.filePath).toMatch(
       new RegExp(`^users/${USER_ID}/images/.+/example\\.png$`),
     );
     expect(result.url).toContain(encodeURIComponent(result.filePath));
-    expect(await bindings.FILES.head(result.filePath)).not.toBeNull();
+    expect(await bindings.FILES.get(result.filePath, 'arrayBuffer')).not.toBeNull();
   });
 
-  it('rejects unsupported and oversized uploads before writing to R2', async () => {
-    const r2 = new MockR2Bucket();
+  it('rejects unsupported and oversized uploads before writing to KV', async () => {
+    const files = new MockKVNamespace();
     const invalid = validateUpload(
       { name: 'script.svg', type: 'image/svg+xml', size: 100 },
       'image',
@@ -77,26 +77,30 @@ describe('R2 file routes', () => {
 
     expect(invalid?.code).toBe('UNSUPPORTED_FILE_TYPE');
     expect(oversized?.code).toBe('FILE_TOO_LARGE');
-    expect(r2.objects.size).toBe(0);
+    expect(files.objects.size).toBe(0);
   });
 
   it('blocks arbitrary keys and permits referenced business attachments', async () => {
     const key = `users/${USER_ID}/rules/33333333-3333-4333-8333-333333333333/rule.pdf`;
-    const r2 = new MockR2Bucket();
-    await r2.put(key, 'content', {
-      httpMetadata: { contentType: 'application/pdf' },
-      customMetadata: { ownerId: USER_ID, originalName: 'rule.pdf' },
+    const files = new MockKVNamespace();
+    await files.put(key, 'content', {
+      metadata: {
+        contentType: 'application/pdf',
+        ownerId: USER_ID,
+        purpose: 'rule',
+        originalName: 'rule.pdf',
+      },
     });
 
     const forbidden = await routerFor(OTHER_USER_ID).request(
       `https://example.com/files/content?key=${encodeURIComponent(key)}`,
       {},
-      createBindings(r2, false),
+      createBindings(files, false),
     );
     const allowed = await routerFor(OTHER_USER_ID).request(
       `https://example.com/files/download?key=${encodeURIComponent(key)}`,
       {},
-      createBindings(r2, true),
+      createBindings(files, true),
     );
 
     expect(forbidden.status).toBe(403);
@@ -107,28 +111,28 @@ describe('R2 file routes', () => {
 
   it('only deletes current-user orphan objects', async () => {
     const key = `users/${USER_ID}/attachments/33333333-3333-4333-8333-333333333333/notes.txt`;
-    const r2 = new MockR2Bucket();
-    await r2.put(key, 'notes');
+    const files = new MockKVNamespace();
+    await files.put(key, 'notes');
 
     const inUse = await routerFor(USER_ID).request(
       `https://example.com/files?key=${encodeURIComponent(key)}`,
       { method: 'DELETE' },
-      createBindings(r2, true),
+      createBindings(files, true),
     );
     const deleted = await routerFor(USER_ID).request(
       `https://example.com/files?key=${encodeURIComponent(key)}`,
       { method: 'DELETE' },
-      createBindings(r2, false),
+      createBindings(files, false),
     );
 
     expect(inUse.status).toBe(409);
     expect(deleted.status).toBe(204);
-    expect(await r2.head(key)).toBeNull();
+    expect(await files.get(key, 'arrayBuffer')).toBeNull();
   });
 });
 
-describe('R2 attachment serialization', () => {
-  it('stores only the R2 key and hydrates the compatibility shape', () => {
+describe('KV attachment serialization', () => {
+  it('stores only the file key and hydrates the compatibility shape', () => {
     const attachment = {
       bucketId: 'legacy-bucket',
       filePath:
@@ -136,18 +140,18 @@ describe('R2 attachment serialization', () => {
     };
 
     expect(serializeAttachment(attachment)).toBe(
-      `{"r2Key":"${attachment.filePath}"}`,
+      `{"fileKey":"${attachment.filePath}"}`,
     );
-    expect(deserializeAttachment(`{"r2Key":"${attachment.filePath}"}`)).toEqual(
-      { bucketId: 'r2', filePath: attachment.filePath },
+    expect(deserializeAttachment(`{"fileKey":"${attachment.filePath}"}`)).toEqual(
+      { bucketId: 'kv', filePath: attachment.filePath },
     );
     expect(serializeJson({ nested: attachment })).toBe(
-      `{"nested":{"r2Key":"${attachment.filePath}"}}`,
+      `{"nested":{"fileKey":"${attachment.filePath}"}}`,
     );
   });
 });
 
-describe('R2 object keys', () => {
+describe('KV object keys', () => {
   it('accepts generated keys and rejects traversal', () => {
     expect(
       isValidObjectKey(
@@ -176,7 +180,7 @@ function routerFor(userId: string) {
 }
 
 function createBindings(
-  r2: MockR2Bucket = new MockR2Bucket(),
+  files: MockKVNamespace = new MockKVNamespace(),
   referenced = false,
 ): WorkerBindings {
   const statement = {
@@ -188,53 +192,54 @@ function createBindings(
     DB: {
       prepare: () => statement,
     } as unknown as D1Database,
-    FILES: r2 as unknown as R2Bucket,
+    FILES: files as unknown as KVNamespace,
   };
 }
 
-class MockR2Bucket {
+class MockKVNamespace {
   readonly objects = new Map<
     string,
     {
-      body: Blob;
-      httpMetadata?: R2HTTPMetadata;
-      customMetadata?: Record<string, string>;
+      value: ArrayBuffer;
+      metadata?: unknown;
     }
   >();
 
   async put(
     key: string,
-    value: Blob | string,
-    options: R2PutOptions = {},
-  ): Promise<R2Object> {
-    const body = typeof value === 'string' ? new Blob([value]) : value;
+    value: string | ArrayBuffer,
+    options: KVNamespacePutOptions = {},
+  ): Promise<void> {
+    const storedValue =
+      typeof value === 'string'
+        ? new TextEncoder().encode(value).buffer
+        : value;
     this.objects.set(key, {
-      body,
-      httpMetadata: options.httpMetadata as R2HTTPMetadata | undefined,
-      customMetadata: options.customMetadata,
+      value: storedValue,
+      metadata: options.metadata,
     });
-    return { key } as R2Object;
   }
 
-  async head(key: string): Promise<R2Object | null> {
-    return this.objects.has(key) ? ({ key } as R2Object) : null;
-  }
-
-  async get(key: string): Promise<R2ObjectBody | null> {
+  async get(
+    key: string,
+    type: 'text' | 'arrayBuffer' | 'stream' = 'text',
+  ): Promise<string | ArrayBuffer | ReadableStream | null> {
     const stored = this.objects.get(key);
     if (!stored) return null;
-    const headers = stored.httpMetadata;
+    if (type === 'arrayBuffer') return stored.value;
+    if (type === 'stream') return new Blob([stored.value]).stream();
+    return new TextDecoder().decode(stored.value);
+  }
+
+  async getWithMetadata(
+    key: string,
+    _type: 'arrayBuffer',
+  ): Promise<{ value: ArrayBuffer | null; metadata: unknown }> {
+    const stored = this.objects.get(key);
     return {
-      key,
-      httpEtag: '"mock-etag"',
-      customMetadata: stored.customMetadata,
-      body: stored.body.stream(),
-      writeHttpMetadata(target: Headers) {
-        if (headers?.contentType) {
-          target.set('content-type', headers.contentType);
-        }
-      },
-    } as R2ObjectBody;
+      value: stored?.value ?? null,
+      metadata: stored?.metadata ?? null,
+    };
   }
 
   async delete(key: string): Promise<void> {

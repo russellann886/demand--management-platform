@@ -149,6 +149,6 @@ function createBindings(): WorkerBindings {
     OPENROUTER_API_KEY: 'test-key',
     OPENROUTER_MODEL: 'test/model',
     DB: db as unknown as D1Database,
-    FILES: {} as R2Bucket,
+    FILES: {} as KVNamespace,
   };
 }

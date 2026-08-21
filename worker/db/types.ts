@@ -136,5 +136,5 @@ export interface WorkerBindings {
   OPENROUTER_API_KEY?: string;
   OPENROUTER_MODEL?: string;
   DB: D1Database;
-  FILES: R2Bucket;
+  FILES: KVNamespace;
 }

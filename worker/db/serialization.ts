@@ -116,7 +116,7 @@ function toStoredJson(value: JsonValue): JsonValue {
     return value;
   }
   if (isAttachment(value)) {
-    return { r2Key: value.filePath };
+    return { fileKey: value.filePath };
   }
 
   return Object.fromEntries(
@@ -133,10 +133,17 @@ function fromStoredJson(value: JsonValue): JsonValue {
   }
   if (
     Object.keys(value).length === 1 &&
+    typeof value.fileKey === 'string' &&
+    value.fileKey.length > 0
+  ) {
+    return { bucketId: 'kv', filePath: value.fileKey };
+  }
+  if (
+    Object.keys(value).length === 1 &&
     typeof value.r2Key === 'string' &&
     value.r2Key.length > 0
   ) {
-    return { bucketId: 'r2', filePath: value.r2Key };
+    return { bucketId: 'kv', filePath: value.r2Key };
   }
 
   return Object.fromEntries(

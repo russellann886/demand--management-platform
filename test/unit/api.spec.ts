@@ -8,7 +8,7 @@ import type { WorkerBindings } from '../../worker/db/types';
 describe('Cloudflare business API', () => {
   let dispose: (() => Promise<void>) | undefined;
   let db: D1Database;
-  let files: R2Bucket;
+  let files: KVNamespace;
   let env: WorkerBindings;
 
   beforeAll(async () => {
