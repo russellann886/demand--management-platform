@@ -11,6 +11,7 @@ import MergedDemandPage from './pages/MergedDemandPage/MergedDemandPage';
 import RuleManagementPage from './pages/RuleManagementPage/RuleManagementPage';
 import NotFound from './pages/NotFound/NotFound';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
 
 const RoutesComponent = () => {
   return (
@@ -27,6 +28,10 @@ const RoutesComponent = () => {
         />
         <Route path="rule-plaza" element={<Navigate to="/" replace />} />
         <Route path="rule-management" element={<RuleManagementPage />} />
+        <Route
+          path="account/password"
+          element={<ChangePasswordPage mode="account" />}
+        />
         <Route element={<RequireRole roles={['super_admin']} />}>
           <Route path="admin/users" element={<AdminUsersPage />} />
         </Route>

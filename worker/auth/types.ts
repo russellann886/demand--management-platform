@@ -6,10 +6,11 @@ export interface AuthUser {
   displayName: string;
   avatarUrl: string | null;
   active: boolean;
+  mustChangePassword: boolean;
   roles: SystemRole[];
 }
 
-export interface AccessIdentity {
+export interface UserIdentity {
   email: string;
   displayName: string;
   subject: string | null;

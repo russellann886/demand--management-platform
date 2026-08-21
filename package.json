@@ -24,6 +24,7 @@
     "type:check:node": "tsc --noEmit --project tsconfig.node.json",
     "lint": "npm run eslint && npm run stylelint",
     "test": "mkdir -p .wrangler/registry && WRANGLER_WRITE_LOGS=false WRANGLER_REGISTRY_PATH=.wrangler/registry jest --runInBand",
+    "auth:hash": "node scripts/create-password-hash.mjs",
     "format": "prettier --write \"{client/src/main.tsx,worker/**/*.{ts,tsx},*.{js,json,md,ts}}\""
   },
   "dependencies": {

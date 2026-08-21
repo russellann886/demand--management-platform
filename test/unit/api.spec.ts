@@ -21,7 +21,10 @@ describe('Cloudflare business API', () => {
     dispose = proxy.dispose;
     db = proxy.env.DB;
     files = proxy.env.FILES;
-    const migration = readFileSync('migrations/0001_initial.sql', 'utf8');
+    const migration = [
+      readFileSync('migrations/0001_initial.sql', 'utf8'),
+      readFileSync('migrations/0002_password_auth.sql', 'utf8'),
+    ].join('\n');
     await db.batch(
       unstable_splitSqlQuery(migration).map((statement) =>
         db.prepare(statement),

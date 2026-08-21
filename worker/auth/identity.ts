@@ -5,96 +5,59 @@ import {
   type SystemRole,
 } from '../db/roles';
 import type { AppUserRow, WorkerBindings } from '../db/types';
-import type { AccessIdentity, AuthUser } from './types';
+import type { AuthUser, UserIdentity } from './types';
 
-const ACCESS_EMAIL_HEADER = 'cf-access-authenticated-user-email';
-const ACCESS_JWT_HEADER = 'cf-access-jwt-assertion';
-
-type AccessJwtClaims = {
-  email?: unknown;
-  name?: unknown;
-  given_name?: unknown;
-  sub?: unknown;
+type UserWithCredentialRow = AppUserRow & {
+  must_change_password: number | null;
 };
 
-export function resolveAccessIdentity(
-  request: Request,
+export function resolveDevelopmentIdentity(
   bindings: Pick<
     WorkerBindings,
     'APP_ENV' | 'DEV_USER_EMAIL' | 'DEV_USER_NAME'
   >,
-): AccessIdentity | null {
-  const accessEmail = normalizeEmail(request.headers.get(ACCESS_EMAIL_HEADER));
-  const claims = parseJwtClaims(request.headers.get(ACCESS_JWT_HEADER));
+): UserIdentity | null {
+  if (bindings.APP_ENV === 'production') return null;
 
-  if (accessEmail) {
-    return {
-      email: accessEmail,
-      displayName: resolveDisplayName(claims, accessEmail),
-      subject: asNonEmptyString(claims?.sub),
-    };
-  }
+  const email = normalizeEmail(bindings.DEV_USER_EMAIL);
+  if (!email) return null;
 
-  if (bindings.APP_ENV !== 'production') {
-    const devEmail = normalizeEmail(bindings.DEV_USER_EMAIL);
-    if (devEmail) {
-      return {
-        email: devEmail,
-        displayName:
-          bindings.DEV_USER_NAME?.trim() || displayNameFromEmail(devEmail),
-        subject: null,
-      };
-    }
-  }
-
-  return null;
+  return {
+    email,
+    displayName:
+      bindings.DEV_USER_NAME?.trim() || displayNameFromEmail(email),
+    subject: null,
+  };
 }
 
-export async function syncAuthenticatedUser(
+export async function syncIdentityUser(
   db: D1Database,
-  identity: AccessIdentity,
+  identity: UserIdentity,
   superAdminEmails: string | undefined,
 ): Promise<AuthUser> {
   const now = toDbTimestamp();
-  let user = await findUser(db, identity);
+  let user = await findUser(db, identity.email);
 
   if (user) {
     await db
       .prepare(
         `UPDATE app_user
-         SET email = ?, display_name = ?, access_subject = COALESCE(?, access_subject),
-             last_seen_at = ?, _updated_at = ?, _updated_by = id
+         SET display_name = ?, last_seen_at = ?, _updated_at = ?, _updated_by = id
          WHERE id = ?`,
       )
-      .bind(
-        identity.email,
-        identity.displayName,
-        identity.subject,
-        now,
-        now,
-        user.id,
-      )
+      .bind(identity.displayName, now, now, user.id)
       .run();
   } else {
     const id = createId();
     await db
       .prepare(
         `INSERT INTO app_user
-          (id, email, display_name, access_subject, active, last_seen_at,
-           _created_by, _updated_by)
-         VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
+          (id, email, display_name, active, last_seen_at, _created_by, _updated_by)
+         VALUES (?, ?, ?, 1, ?, ?, ?)`,
       )
-      .bind(
-        id,
-        identity.email,
-        identity.displayName,
-        identity.subject,
-        now,
-        id,
-        id,
-      )
+      .bind(id, identity.email, identity.displayName, now, id, id)
       .run();
-    user = await getUserById(db, id);
+    user = await findUser(db, identity.email);
   }
 
   if (!user) {
@@ -102,42 +65,51 @@ export async function syncAuthenticatedUser(
   }
 
   await grantInitialSuperAdmin(db, user.id, identity.email, superAdminEmails);
+  const authUser = await loadAuthUserById(db, user.id);
+  if (!authUser) throw new Error('Unable to load the authenticated user');
+  return authUser;
+}
+
+export async function loadAuthUserById(
+  db: D1Database,
+  userId: string,
+): Promise<AuthUser | null> {
+  const user = await db
+    .prepare(
+      `SELECT u.*, c.must_change_password
+       FROM app_user u
+       LEFT JOIN app_credential c ON c.user_id = u.id
+       WHERE u.id = ?
+       LIMIT 1`,
+    )
+    .bind(userId)
+    .first<UserWithCredentialRow>();
+  if (!user) return null;
 
   return {
     id: user.id,
-    email: identity.email,
-    displayName: identity.displayName,
+    email: user.email,
+    displayName: user.display_name ?? displayNameFromEmail(user.email),
     avatarUrl: user.avatar_url,
     active: user.active === 1,
+    mustChangePassword: user.must_change_password === 1,
     roles: await getUserRoles(db, user.id),
   };
 }
 
-async function findUser(
-  db: D1Database,
-  identity: AccessIdentity,
-): Promise<AppUserRow | null> {
-  if (identity.subject) {
-    const bySubject = await db
-      .prepare('SELECT * FROM app_user WHERE access_subject = ? LIMIT 1')
-      .bind(identity.subject)
-      .first<AppUserRow>();
-    if (bySubject) return bySubject;
-  }
-
-  return db
-    .prepare('SELECT * FROM app_user WHERE email = ? COLLATE NOCASE LIMIT 1')
-    .bind(identity.email)
-    .first<AppUserRow>();
+export function normalizeEmail(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const email = value.trim().toLowerCase();
+  return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
 
-async function getUserById(
+async function findUser(
   db: D1Database,
-  userId: string,
+  email: string,
 ): Promise<AppUserRow | null> {
   return db
-    .prepare('SELECT * FROM app_user WHERE id = ? LIMIT 1')
-    .bind(userId)
+    .prepare('SELECT * FROM app_user WHERE email = ? COLLATE NOCASE LIMIT 1')
+    .bind(email)
     .first<AppUserRow>();
 }
 
@@ -158,50 +130,6 @@ async function getUserRoles(
   return result.results.map((row) => row.role_code).filter(isSystemRole);
 }
 
-function normalizeEmail(value: string | null | undefined): string | null {
-  const email = value?.trim().toLowerCase();
-  return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
-}
-
-function resolveDisplayName(
-  claims: AccessJwtClaims | null,
-  email: string,
-): string {
-  return (
-    asNonEmptyString(claims?.name) ??
-    asNonEmptyString(claims?.given_name) ??
-    displayNameFromEmail(email)
-  );
-}
-
 function displayNameFromEmail(email: string): string {
   return email.split('@')[0] || email;
-}
-
-function parseJwtClaims(assertion: string | null): AccessJwtClaims | null {
-  if (!assertion) return null;
-  const payload = assertion.split('.')[1];
-  if (!payload) return null;
-
-  try {
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized.padEnd(
-      normalized.length + ((4 - (normalized.length % 4)) % 4),
-      '=',
-    );
-    const decoded = atob(padded);
-    const bytes = Uint8Array.from(decoded, (character) =>
-      character.charCodeAt(0),
-    );
-    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as AccessJwtClaims)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }

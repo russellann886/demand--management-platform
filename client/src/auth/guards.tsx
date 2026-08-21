@@ -5,11 +5,13 @@ import { ShieldAlert } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
+import { LoginPage } from '@/pages/LoginPage';
 import { useAuth } from './AuthContext';
 import type { SystemRole } from './types';
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { loading, error, refresh } = useAuth();
+  const { user, loading, error, refresh } = useAuth();
 
   if (loading) {
     return (
@@ -36,6 +38,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
       </main>
     );
   }
+
+  if (!user) return <LoginPage />;
+  if (user.mustChangePassword) return <ChangePasswordPage />;
 
   return children;
 }

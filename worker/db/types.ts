@@ -49,6 +49,17 @@ export interface AppSessionRow extends AuditColumns {
   ip_address: string | null;
 }
 
+export interface AppCredentialRow extends AuditColumns {
+  user_id: UserId;
+  password_hash: string;
+  password_salt: string;
+  password_iterations: number;
+  must_change_password: DbBoolean;
+  failed_attempts: number;
+  locked_until: DbTimestamp | null;
+  password_changed_at: DbTimestamp;
+}
+
 export interface DemandCategoryRow extends AuditColumns {
   id: string;
   name: string;

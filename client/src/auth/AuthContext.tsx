@@ -8,7 +8,13 @@ import {
   type ReactNode,
 } from 'react';
 
-import { getCurrentUser } from './api';
+import {
+  ApiError,
+  changePassword as changePasswordRequest,
+  getCurrentUser,
+  login as loginRequest,
+  logout as logoutRequest,
+} from './api';
 import {
   SECTION_ADMIN_ROLES,
   type CurrentUser,
@@ -22,7 +28,12 @@ interface AuthContextValue {
   hasRole: (...roles: SystemRole[]) => boolean;
   canManageSection: (section: string | null) => boolean;
   refresh: () => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(await getCurrentUser());
     } catch (caught) {
       setUser(null);
+      if (caught instanceof ApiError && caught.status === 401) return;
       setError(
         caught instanceof Error ? caught : new Error('无法读取当前用户。'),
       );
@@ -76,8 +88,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return user.roles.some((role) => SECTION_ADMIN_ROLES[role] === section);
       },
       refresh,
-      logout: () => {
-        window.location.assign('/cdn-cgi/access/logout');
+      login: async (email, password) => {
+        setUser(await loginRequest(email, password));
+        setError(null);
+      },
+      logout: async () => {
+        await logoutRequest();
+        setUser(null);
+      },
+      changePassword: async (currentPassword, newPassword) => {
+        await changePasswordRequest(currentPassword, newPassword);
+        await refresh();
       },
     };
   }, [error, loading, refresh, user]);

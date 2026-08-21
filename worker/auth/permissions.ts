@@ -3,7 +3,11 @@ import { SECTION_ADMIN_ROLES } from './sections';
 import type { AuthVariables } from './types';
 import type { SystemRole } from '../db/roles';
 import type { WorkerBindings } from '../db/types';
-import { resolveAccessIdentity, syncAuthenticatedUser } from './identity';
+import {
+  resolveDevelopmentIdentity,
+  syncIdentityUser,
+} from './identity';
+import { authenticateSession } from './session';
 import { errorResponse } from '../http/errors';
 
 type AuthEnv = {
@@ -47,21 +51,25 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (
   context,
   next,
 ) => {
-  const identity = resolveAccessIdentity(context.req.raw, context.env);
-  if (!identity) {
+  let user = await authenticateSession(context.req.raw, context.env.DB);
+  const developmentIdentity = resolveDevelopmentIdentity(context.env);
+  if (!user && developmentIdentity) {
+    user = await syncIdentityUser(
+      context.env.DB,
+      developmentIdentity,
+      context.env.SUPER_ADMIN_EMAILS,
+    );
+  }
+
+  if (!user) {
     return errorResponse(
       context,
       401,
       'AUTH_REQUIRED',
-      'Cloudflare Access identity is required.',
+      '请先登录。',
     );
   }
 
-  const user = await syncAuthenticatedUser(
-    context.env.DB,
-    identity,
-    context.env.SUPER_ADMIN_EMAILS,
-  );
   if (!user.active) {
     return errorResponse(
       context,
@@ -71,6 +79,17 @@ export const requireAuth: MiddlewareHandler<AuthEnv> = async (
     );
   }
   context.set('user', user);
+  if (
+    user.mustChangePassword &&
+    !['/api/auth/me', '/api/auth/change-password'].includes(context.req.path)
+  ) {
+    return errorResponse(
+      context,
+      403,
+      'PASSWORD_CHANGE_REQUIRED',
+      '请先修改初始密码。',
+    );
+  }
   await next();
 };
 

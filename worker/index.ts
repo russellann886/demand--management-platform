@@ -5,7 +5,7 @@ import type { WorkerBindings } from './db/types';
 import { errorResponse } from './http/errors';
 import { ApiError, readJsonObject } from './http/request';
 import aiRoutes from './routes/ai';
-import authRoutes from './routes/auth';
+import authRoutes, { publicAuthRoutes } from './routes/auth';
 import categoryRoutes from './routes/categories';
 import demandRoutes from './routes/demands';
 import filesRoutes from './routes/files';
@@ -49,6 +49,7 @@ app.post('/openapi/demands', async (context) => {
   );
 });
 
+app.route('/api', publicAuthRoutes);
 app.use('/api/*', requireAuth);
 app.route('/api', aiRoutes);
 app.route('/api', authRoutes);

@@ -5,51 +5,30 @@ import {
   hasRole,
   managedSections,
 } from '../../worker/auth/permissions';
-import { resolveAccessIdentity } from '../../worker/auth/identity';
+import { resolveDevelopmentIdentity } from '../../worker/auth/identity';
+import {
+  hashPassword,
+  validatePassword,
+  verifyPassword,
+} from '../../worker/auth/password';
 import { isInitialAdmin, parseInitialAdminEmails } from '../../worker/db/roles';
 
-describe('Cloudflare Access identity', () => {
-  it('uses and normalizes the trusted Access email header', () => {
-    const request = new Request('https://example.com/api/auth/me', {
-      headers: {
-        'cf-access-authenticated-user-email': ' User@Example.COM ',
-        'cf-access-jwt-assertion': createUnsignedJwt({
-          sub: 'access-subject',
-          name: '测试用户',
-        }),
-      },
-    });
-
+describe('development identity', () => {
+  it('never enables the development identity in production', () => {
     expect(
-      resolveAccessIdentity(request, {
+      resolveDevelopmentIdentity({
         APP_ENV: 'production',
         DEV_USER_EMAIL: 'dev@example.com',
-      }),
-    ).toEqual({
-      email: 'user@example.com',
-      displayName: '测试用户',
-      subject: 'access-subject',
-    });
-  });
-
-  it('never falls back to development identity in production', () => {
-    expect(
-      resolveAccessIdentity(new Request('https://example.com'), {
-        APP_ENV: 'production',
-        DEV_USER_EMAIL: 'dev@example.com',
-        DEV_USER_NAME: 'Developer',
       }),
     ).toBeNull();
   });
 
   it('requires an explicit valid development email', () => {
-    const request = new Request('http://localhost:8787/api/auth/me');
-
     expect(
-      resolveAccessIdentity(request, { APP_ENV: 'development' }),
+      resolveDevelopmentIdentity({ APP_ENV: 'development' }),
     ).toBeNull();
     expect(
-      resolveAccessIdentity(request, {
+      resolveDevelopmentIdentity({
         APP_ENV: 'development',
         DEV_USER_EMAIL: 'developer@example.com',
         DEV_USER_NAME: 'Local Developer',
@@ -59,6 +38,25 @@ describe('Cloudflare Access identity', () => {
       displayName: 'Local Developer',
       subject: null,
     });
+  });
+});
+
+describe('password security', () => {
+  it('validates password length and character requirements', () => {
+    expect(validatePassword('short1')).not.toBeNull();
+    expect(validatePassword('onlyletterslong')).not.toBeNull();
+    expect(validatePassword('secure-password-123')).toBeNull();
+  });
+
+  it('hashes passwords with a random salt and verifies them', async () => {
+    const stored = await hashPassword('secure-password-123');
+    expect(stored.hash).not.toContain('secure-password-123');
+    await expect(
+      verifyPassword('secure-password-123', stored),
+    ).resolves.toBe(true);
+    await expect(verifyPassword('wrong-password-123', stored)).resolves.toBe(
+      false,
+    );
   });
 });
 
@@ -91,8 +89,3 @@ describe('super administrator seed configuration', () => {
     expect(isInitialAdmin('ADMIN@example.com', 'admin@example.com')).toBe(true);
   });
 });
-
-function createUnsignedJwt(payload: Record<string, unknown>): string {
-  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  return `header.${encoded}.signature`;
-}

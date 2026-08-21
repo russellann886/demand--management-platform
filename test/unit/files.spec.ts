@@ -172,6 +172,7 @@ function routerFor(userId: string) {
       displayName: userId,
       avatarUrl: null,
       active: true,
+      mustChangePassword: false,
       roles: [],
     });
     await next();

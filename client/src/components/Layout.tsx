@@ -1,6 +1,13 @@
 import { useState, type ReactElement } from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
-import { Lightbulb, Layers, FileText, ShieldCheck, Users } from 'lucide-react';
+import {
+  FileText,
+  KeyRound,
+  Layers,
+  Lightbulb,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { CanRole } from '@/auth/guards';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -133,6 +140,12 @@ const Layout = () => {
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem asChild>
+                <Link to="/account/password">
+                  <KeyRound className="size-4" />
+                  修改密码
+                </Link>
+              </DropdownMenuItem>
               <CanRole roles={['super_admin']}>
                 <DropdownMenuItem asChild>
                   <Link to="/admin/users">
@@ -194,7 +207,9 @@ const Layout = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={logout}>退出登录</AlertDialogAction>
+            <AlertDialogAction onClick={() => void logout()}>
+              退出登录
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

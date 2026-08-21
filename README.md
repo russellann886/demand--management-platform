@@ -31,8 +31,9 @@ OPENROUTER_MODEL=openai/gpt-4o-mini
 ```
 
 `DEV_USER_EMAIL` 是本地开发专用身份，只有 `APP_ENV` 不是 `production` 时才会
-生效。`SUPER_ADMIN_EMAILS` 支持以逗号分隔多个邮箱；匹配的用户首次访问时会
-获得超级管理员角色。需要测试 AI 整合时再填写本地 OpenRouter key。
+生效。`SUPER_ADMIN_EMAILS` 支持以逗号分隔多个邮箱；匹配的本地开发用户会
+获得超级管理员角色。生产环境使用 D1 账号密码和 HttpOnly 会话 Cookie。
+需要测试 AI 整合时再填写本地 OpenRouter key。
 
 首次运行或新增 migration 后，初始化本地 D1：
 
@@ -84,31 +85,35 @@ npx wrangler d1 migrations apply DB --remote
 
 ```bash
 npx wrangler secret put OPENROUTER_API_KEY
-npx wrangler secret put SUPER_ADMIN_EMAILS
 npx wrangler secret put OPENAPI_DEMAND_TOKEN
 ```
 
 - `OPENROUTER_API_KEY`：服务端 AI 整合使用的 OpenRouter key。
-- `SUPER_ADMIN_EMAILS`：首批超级管理员邮箱，多个值以逗号分隔。
 - `OPENAPI_DEMAND_TOKEN`：`POST /openapi/demands` 的 Bearer token。
 
 可在 Cloudflare Dashboard 的 Worker `Settings > Variables and Secrets` 中配置
 同名 Secret。不要添加 `VITE_` 前缀，否则变量可能被前端构建公开。
 
-## Cloudflare Access
+## 账号密码认证
 
-在 Cloudflare Zero Trust 中为生产域名创建 Self-hosted Access application，
-覆盖整个生产 hostname，并用 Allow policy 限制可访问的邮箱或组织。应用依赖
-Cloudflare Access 注入并保护以下可信身份头：
+生产环境使用平台自己的邮箱和密码登录，不依赖 Cloudflare Access。密码采用
+PBKDF2-SHA-256 和独立随机盐保存，D1 不存储明文密码。登录会话保存在
+`app_session`，浏览器只持有 `HttpOnly`、`Secure`、`SameSite=Strict` Cookie。
+连续输错密码 5 次后账号会锁定 15 分钟。
 
-- `Cf-Access-Authenticated-User-Email`
-- `Cf-Access-Jwt-Assertion`
+首次部署需要为第一个超级管理员写入凭据。先通过标准输入生成密码哈希，避免密码
+出现在命令行参数中：
 
-不要允许客户端绕过 Access 直接访问 Worker 自定义域名或 `workers.dev` 地址；
-否则请求者可伪造身份头。若需开放 `/openapi/demands` 给机器调用，应为调用方
-配置 Access Service Token，并同时携带该接口自己的
-`Authorization: Bearer <OPENAPI_DEMAND_TOKEN>`。`/api/health` 默认也受域名
-Access 策略保护。
+```bash
+printf '%s' 'replace-with-a-temporary-password' | npm run -s auth:hash
+```
+
+将输出的 `hash`、`salt` 和 `iterations` 写入远程 D1 的
+`app_credential`，并确保该用户在 `user_role` 中拥有 `super_admin`。初始凭据
+的 `must_change_password` 应设为 `1`，用户首次登录后会被要求修改密码。
+
+超级管理员登录后可在“用户管理”中创建普通用户、分配角色或重置密码。新建账号和
+重置后的临时密码都会强制用户在下次登录时修改。
 
 ## GitHub 与部署
 
@@ -141,7 +146,7 @@ npx wrangler deploy
 
 ## 健康检查
 
-通过 Access 登录后访问：
+直接访问：
 
 ```bash
 curl https://<production-hostname>/api/health
@@ -153,9 +158,6 @@ curl https://<production-hostname>/api/health
 { "status": "ok", "database": "ok" }
 ```
 
-若使用 Access Service Token 做自动探测，还需按 Cloudflare Access 配置发送
-`CF-Access-Client-Id` 和 `CF-Access-Client-Secret` 请求头。
-
 ## 常见故障
 
 - `database_id` 无效或找不到 D1：替换 `wrangler.toml` 的全零占位 ID，并确认
@@ -164,14 +166,15 @@ curl https://<production-hostname>/api/health
   `--remote`，并确认命令使用了正确环境。
 - 附件上传或读取失败：确认 `FILES` KV namespace ID 和当前账户一致，并检查
   文件是否超过 10 MiB 图片限制或 20 MiB 文档限制。
-- API 返回 `401 AUTH_REQUIRED`：本地检查 `.dev.vars` 中的 `APP_ENV` 和
-  `DEV_USER_EMAIL`；生产检查 Access application、策略及身份头。
-- 首个管理员没有权限：确认 `SUPER_ADMIN_EMAILS` Secret 包含其 Access 邮箱，
-  然后重新登录并调用 API。
+- API 返回 `401 AUTH_REQUIRED`：生产环境先使用平台账号登录；本地开发则检查
+  `.dev.vars` 中的 `APP_ENV` 和 `DEV_USER_EMAIL`。
+- 无法登录：确认账号已写入 `app_user` 和 `app_credential`，并检查是否因连续
+  失败而被临时锁定。
+- 首个管理员没有权限：确认该用户在 `user_role` 中拥有 `super_admin`。
 - AI 整合提示未配置或调用失败：检查 `OPENROUTER_API_KEY` Secret、模型名、
   OpenRouter 额度和 Worker 日志；手动整合不依赖 OpenRouter。
 - 外部需求接口返回 `401` 或 `503`：确认 `OPENAPI_DEMAND_TOKEN` 已配置，调用方
-  使用同一 token，并满足 Access Service Token 策略。
+  使用同一 token。
 - `/api/health` 返回 `5xx`：优先检查 D1 的 `DB` 绑定和远程 migration，再查看
   Cloudflare Worker 日志。
 

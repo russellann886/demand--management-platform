@@ -13,6 +13,7 @@ const USER: AuthUser = {
   displayName: 'Admin',
   avatarUrl: null,
   active: true,
+  mustChangePassword: false,
   roles: ['admin_replenish'],
 };
 

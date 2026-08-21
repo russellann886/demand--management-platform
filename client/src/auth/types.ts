@@ -16,12 +16,14 @@ export interface CurrentUser {
   email: string;
   displayName: string;
   avatarUrl: string | null;
+  mustChangePassword: boolean;
   roles: SystemRole[];
 }
 
 export interface ManagedUser extends CurrentUser {
   active: boolean;
   lastSeenAt: string | null;
+  hasPassword: boolean;
 }
 
 export interface RoleDefinition {
